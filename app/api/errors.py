@@ -22,7 +22,8 @@ def session_not_found(session_id: str) -> APIHTTPException:
 
 def validation_error(message: str) -> APIHTTPException:
     return APIHTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=422,
         error_code="VALIDATION_ERROR",
         message=message,
     )
+

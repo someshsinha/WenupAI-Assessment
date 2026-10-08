@@ -13,6 +13,12 @@ class SendMessageRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message content")
 
 
+class ManualCorrectionRequest(BaseModel):
+    field: str = Field(..., description="Target field path to update")
+    op: str = Field(default="set", description="Operation type: set, add, remove, clear, confirm")
+    value: Any = Field(default=None, description="New field value")
+
+
 class DocumentResponse(BaseModel):
     title: str
     text: str

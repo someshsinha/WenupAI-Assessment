@@ -391,6 +391,29 @@ Wrap message turn processing inside `session_store.lock(session_id)` and return 
 - 3 end-to-end HTTP integration tests in `tests/integration/test_api_endpoints.py`.
 - All 79 tests pass.
 
+---
+
+## Log Entry 018 — F17 Manual Correction API
+
+### Prompt / Task
+Implement F17: Direct manual correction endpoint `PATCH /api/sessions/{session_id}/state`. Ensure manual edits from UI bypass the LLM completely, reuse the deterministic reducer & validators, record `kind="correction"` with `evidence="Manual UI Edit"`, clear pending clarifications for that field, and regenerate the draft document immediately.
+
+### Output that was useful
+- `PATCH /api/sessions/{id}/state` providing a deterministic administrative/user override route.
+- Fast execution path that guarantees manual inputs are directly applied without LLM latency or hallucination risks.
+
+### What I questioned
+- *Should manual edits be routed through an LLM to normalize text?*
+  **Answer**: No. Direct manual corrections from the UI represent explicit user intent and must go directly through the deterministic reducer and validators.
+
+### Decision
+Direct UI edits execute as pure state reducer operations with locked concurrency and immediate document regeneration.
+
+### Result
+- 3 integration tests in `tests/integration/test_manual_correction.py` verifying direct edits, rejection of invalid fields/types (422), and immediate document synchronization.
+- All 82 tests in the test suite pass.
+
+
 
 
 

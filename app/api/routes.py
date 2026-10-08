@@ -12,11 +12,14 @@ from app.domain.planner import get_missing_fields, is_state_complete
 from app.api.schemas import (
     CreateSessionResponse,
     SendMessageRequest,
+    ManualCorrectionRequest,
     SessionDetailResponse,
     MessageTurnResponse,
     DocumentResponse,
 )
-from app.api.errors import session_not_found
+from app.api.errors import session_not_found, validation_error
+from app.domain.validators import ValidationError
+from app.domain.reducer import apply_operations_to_session
 
 router = APIRouter(prefix="/api", tags=["Intake"])
 
@@ -133,7 +136,67 @@ async def send_message(
         )
 
 
+@router.patch("/sessions/{session_id}/state", response_model=SessionDetailResponse)
+async def manual_correction(
+    session_id: str,
+    payload: ManualCorrectionRequest,
+):
+    """Directly applies a manual correction to structured state, bypassing the LLM."""
+    async with session_store.lock(session_id):
+        session = await session_store.get(session_id)
+        if not session:
+            raise session_not_found(session_id)
+
+        turn = (len(session.messages) // 2) + 1
+
+        try:
+            updated_session = apply_operations_to_session(
+                session=session,
+                operations=[
+                    {
+                        "op": payload.op,
+                        "field": payload.field,
+                        "value": payload.value,
+                        "evidence": "Manual UI Edit",
+                        "is_correction": True,
+                    }
+                ],
+                turn=turn,
+            )
+        except ValidationError as e:
+            raise validation_error(str(e))
+
+        await session_store.save(updated_session)
+
+        doc = render_wishes_document(
+            updated_session.state,
+            has_pending_clarification=bool(updated_session.pending_clarification),
+        )
+        missing = get_missing_fields(updated_session.state)
+        complete = is_state_complete(
+            updated_session.state,
+            has_pending_clarification=bool(updated_session.pending_clarification),
+        )
+
+        return SessionDetailResponse(
+            session_id=updated_session.id,
+            state=updated_session.state,
+            messages=updated_session.messages,
+            changes=updated_session.changes,
+            pending_clarification=updated_session.pending_clarification,
+            missing_fields=missing,
+            is_complete=complete,
+            document=DocumentResponse(
+                title=doc.title,
+                text=doc.text,
+                is_complete=doc.is_complete,
+                missing_fields=doc.missing_fields,
+            ),
+        )
+
+
 @router.get("/sessions/{session_id}/document", response_model=DocumentResponse)
+
 async def get_document(session_id: str):
     """Retrieves current draft Personal Wishes Document."""
     session = await session_store.get(session_id)
