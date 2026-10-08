@@ -640,6 +640,23 @@ Fix address input fallback issue where Gemini wrapped JSON inside ````json ... `
 - Tested live extractions on `"International Institute of Information Technology , Pune"`, `"I live at I2IT college , which is situated at Hinjewadi in Pune"`, and `"123 Main Street, Apt 4B, New York, NY 10001, United States"`. All parsed with 100% precision.
 - All 101 unit and integration tests passing.
 
+---
+
+## Log Entry 028 — Wrap-up & Negative Responses for Additional Wishes & Finalization
+
+### Prompt / Task
+Fix conversational loop at the end of the intake where answers like "nothing", "not much", "nothing please finalize", or "no baba" were classified by Gemini as "unclear" ambiguities, leaving `additional_wishes` as `UNKNOWN` and indefinitely repeating the final wishes prompt.
+
+### Output that was useful
+- Enhanced `SYSTEM_EXTRACTION_PROMPT` in `app/llm/prompts.py` to explicitly map concise negative and closing words ("nothing", "not much", "none", "no", "no baba", "finalize", "all done") to `additional_wishes = []` (confirmed empty list).
+- Supported free-form wish statements (e.g. "sex is very nice", "play jazz at my funeral") into `additional_wishes`.
+- Updated `MockLLMClient` with matching closing intent patterns.
+
+### Result
+- Added regression test `test_regression_additional_wishes_concise_negative_answers_complete_session` in `tests/integration/test_manual_session_regressions.py`.
+- 102/102 test suite passing.
+
+
 
 
 
