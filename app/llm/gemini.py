@@ -45,44 +45,54 @@ class GeminiClient:
         client = self._get_client()
         prompt = payload.get("prompt", "")
 
-        try:
-            from google.genai import types
-            loop = asyncio.get_running_loop()
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                from google.genai import types
+                loop = asyncio.get_running_loop()
 
-            def _call_gemini():
-                config_args: dict[str, Any] = {
-                    "temperature": 0.0,  # Zero temperature for deterministic extraction
-                }
-                if schema:
-                    config_args["response_mime_type"] = "application/json"
-                    config_args["response_schema"] = schema
+                def _call_gemini():
+                    config_args: dict[str, Any] = {
+                        "temperature": 0.0,  # Zero temperature for deterministic extraction
+                    }
+                    if schema:
+                        config_args["response_mime_type"] = "application/json"
+                        config_args["response_schema"] = schema
 
-                config = types.GenerateContentConfig(**config_args)
+                    config = types.GenerateContentConfig(**config_args)
 
-                response = client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=config,
+                    response = client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt,
+                        config=config,
+                    )
+                    return response.text
+
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, _call_gemini),
+                    timeout=self.timeout_seconds,
                 )
-                return response.text
+                return result or "{}"
 
-            result = await asyncio.wait_for(
-                loop.run_in_executor(None, _call_gemini),
-                timeout=self.timeout_seconds,
-            )
-            return result or "{}"
+            except asyncio.TimeoutError:
+                if attempt == max_retries:
+                    raise LLMTimeoutError(f"Gemini API request timed out after {self.timeout_seconds}s")
+                await asyncio.sleep(2.0)
+            except LLMNotConfiguredError:
+                raise
+            except Exception as e:
+                err_str = str(e).lower()
+                is_rate_limit = any(k in err_str for k in ("429", "quota", "rate limit", "resource_exhausted"))
+                if is_rate_limit and attempt < max_retries:
+                    await asyncio.sleep(3.0 * (attempt + 1))
+                    continue
+                if is_rate_limit:
+                    raise LLMRateLimitError(f"Gemini rate limit exceeded: {e}") from e
+                if any(k in err_str for k in ("api_key", "authentication", "unauthenticated")):
+                    raise LLMNotConfiguredError(f"Invalid or unauthorized Gemini API key: {e}") from e
+                raise LLMProviderError(f"Gemini provider error: {e}") from e
 
-        except asyncio.TimeoutError:
-            raise LLMTimeoutError(f"Gemini API request timed out after {self.timeout_seconds}s")
-        except LLMNotConfiguredError:
-            raise
-        except Exception as e:
-            err_str = str(e).lower()
-            if "429" in err_str or "quota" in err_str or "rate limit" in err_str or "resource_exhausted" in err_str:
-                raise LLMRateLimitError(f"Gemini rate limit exceeded: {e}") from e
-            if "api_key" in err_str or "authentication" in err_str or "unauthenticated" in err_str:
-                raise LLMNotConfiguredError(f"Invalid or unauthorized Gemini API key: {e}") from e
-            raise LLMProviderError(f"Gemini provider error: {e}") from e
+        return "{}"
 
     async def compose(self, payload: dict[str, Any]) -> str:
         client = self._get_client()
@@ -115,6 +125,7 @@ class GeminiClient:
             raise
         except Exception as e:
             err_str = str(e).lower()
-            if "429" in err_str or "quota" in err_str or "rate limit" in err_str:
-                raise LLMRateLimitError(f"Gemini rate limit exceeded: {e}") from e
+            if "429" in err_str or "quota" in err_str or "rate limit" in err_str or "resource_exhausted" in err_str:
+                # Return empty string to let ResponseComposer produce deterministic prompt without breaking the flow
+                return ""
             raise LLMProviderError(f"Gemini provider error: {e}") from e

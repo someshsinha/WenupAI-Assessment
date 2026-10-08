@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # LLM Settings
     llm_provider: Literal["mock", "gemini"] = "mock"
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.5-flash"
 
     @property
     def is_llm_configured(self) -> bool:
