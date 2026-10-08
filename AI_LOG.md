@@ -369,6 +369,29 @@ Use in-memory `SessionStore` with per-session locking for deterministic concurre
 - 3 concurrency and CRUD unit tests in `tests/unit/test_session_store.py` verifying serialization of concurrent requests to the same session and parallel execution across distinct sessions.
 - All 76 tests in the test suite pass.
 
+---
+
+## Log Entry 017 — F16 FastAPI Session Endpoints
+
+### Prompt / Task
+Implement F16: REST API endpoints in `app/api/routes.py` and schemas in `app/api/schemas.py` (`POST /api/sessions`, `GET /api/sessions/{id}`, `POST /api/sessions/{id}/messages`, `GET /api/sessions/{id}/document`, `DELETE /api/sessions/{id}`). Ensure message handling uses per-session concurrency locks and returns full turn states with rendered draft documents.
+
+### Output that was useful
+- Clean separation between internal domain state models and external API transport schemas.
+- Consistent endpoint contracts with proper HTTP status codes (200, 201, 404, 422).
+
+### What I questioned
+- *Should API response schemas be distinct from domain models?*
+  **Answer**: Yes. Separating API transport schemas (`app/api/schemas.py`) from domain representations ensures changes to internal state models do not unintentionally break public API contracts.
+
+### Decision
+Wrap message turn processing inside `session_store.lock(session_id)` and return synchronized state, changes, and document preview in every turn response.
+
+### Result
+- 3 end-to-end HTTP integration tests in `tests/integration/test_api_endpoints.py`.
+- All 79 tests pass.
+
+
 
 
 
