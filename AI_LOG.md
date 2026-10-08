@@ -143,6 +143,29 @@ Enforce strict contradiction protection: keep confirmed state unchanged, create 
 - 4 unit tests created in `tests/unit/test_contradictions.py`.
 - All 26 tests in the test suite pass.
 
+---
+
+## Log Entry 007 — F06 Conditional State Rules
+
+### Prompt / Task
+Implement F06: Conditional state rules and cascades in `app/domain/rules.py` (e.g., `has_children=False` cascades `children` to `NOT_APPLICABLE`, while `has_children=True` resets `children` to `UNKNOWN` if missing; explicitly confirmed empty lists for "no gifts" vs `UNKNOWN`).
+
+### Output that was useful
+- Pure function `apply_conditional_rules(state: WishesState)` seamlessly incorporated into the reducer pipeline.
+- Distinction between `UNKNOWN` (must be prompted) and `CONFIRMED` empty list `[]` (user deliberately stated "no gifts").
+
+### What I questioned
+- *If the user corrects `has_children` from `False` back to `True`, what happens to `children`?*
+  **Answer**: `children` must automatically transition from `NOT_APPLICABLE` back to `UNKNOWN` so the planner can ask for the children's names.
+
+### Decision
+Enforce deterministic rule cascades post-operation so invalid state combinations (e.g. `has_children=False` with `children` remaining `UNKNOWN`) are impossible.
+
+### Result
+- 5 unit tests in `tests/unit/test_rules.py` covering all cascades and empty list transitions.
+- All 31 tests pass.
+
+
 
 
 

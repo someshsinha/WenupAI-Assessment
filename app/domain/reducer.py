@@ -1,6 +1,7 @@
 from typing import Any
 from app.domain.models import WishesState, Field, FieldStatus, Change, Gift
 from app.domain.validators import validate_operation_and_value
+from app.domain.rules import apply_conditional_rules
 
 
 def _get_field_container(state: WishesState, field_path: str) -> Field[Any]:
@@ -102,6 +103,8 @@ def apply_operation(
     _set_field_container(new_state, field, new_field)
     new_state.version += 1
 
+    new_state = apply_conditional_rules(new_state)
+
     change = Change(
         turn=turn,
         field=field,
@@ -112,6 +115,7 @@ def apply_operation(
     )
 
     return new_state, change
+
 
 
 def apply_operations(
