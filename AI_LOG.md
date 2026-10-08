@@ -211,6 +211,29 @@ Use `MockLLMClient` as the default test and development client so the applicatio
 - 6 unit tests in `tests/unit/test_llm_clients.py` verifying mock extraction, composing, scripted errors, and unconfigured Gemini key behavior.
 - All 44 tests pass.
 
+---
+
+## Log Entry 010 — F09 Structured LLM Extraction
+
+### Prompt / Task
+Implement F09: Strict structured LLM extraction schema (`ExtractionResult`, `ExtractionOperation`, `ExtractionAmbiguity`, `ExtractionContradiction`) in `app/llm/schemas.py` and structured extraction prompts in `app/llm/prompts.py` with prompt-injection defense boundaries.
+
+### Output that was useful
+- Pydantic models validating `op`, `field`, `value`, `evidence`, `confidence`, and `is_correction` before operations reach the domain reducer.
+- Security instructions in prompts ensuring user messages are treated strictly as passive data.
+
+### What I questioned
+- *What if the LLM produces extra fields or invalid operation names?*
+  **Answer**: Strict Pydantic validation rejects the schema and triggers the recovery flow (F11) rather than letting invalid data pollute state.
+
+### Decision
+Treat LLM output as untrusted external input and enforce strict schema parsing with evidence grounding requirements.
+
+### Result
+- 4 unit tests in `tests/unit/test_extraction_schemas.py` verifying valid schemas and rejection of malformed operations.
+- All 48 tests pass.
+
+
 
 
 
