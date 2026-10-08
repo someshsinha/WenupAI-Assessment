@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, Depends
 from datetime import datetime, timezone
 
-from app.config import settings
+from app.config import settings, get_settings
 from app.llm.base import LLMClient
 from app.llm.mock import MockLLMClient
 from app.llm.gemini import GeminiClient
@@ -26,10 +26,11 @@ router = APIRouter(prefix="/api", tags=["Intake"])
 
 def get_llm_client() -> LLMClient:
     """Dependency provider for LLM client based on application configuration."""
-    if settings.llm_provider == "gemini" and settings.gemini_api_key:
+    cfg = get_settings()
+    if cfg.llm_provider == "gemini" and cfg.gemini_api_key:
         return GeminiClient(
-            api_key=settings.gemini_api_key,
-            model_name=settings.gemini_model,
+            api_key=cfg.gemini_api_key,
+            model_name=cfg.gemini_model,
         )
     return MockLLMClient()
 
@@ -41,12 +42,14 @@ def get_conversation_service(llm_client: LLMClient = Depends(get_llm_client)) ->
 @router.get("/health")
 async def health_check():
     """Check application health and LLM provider configuration status."""
+    cfg = get_settings()
     return {
         "status": "healthy",
-        "app_name": settings.app_name,
-        "environment": settings.app_env,
-        "llm_provider": settings.llm_provider,
-        "llm_configured": settings.is_llm_configured,
+        "app_name": cfg.app_name,
+        "environment": cfg.app_env,
+        "llm_provider": cfg.llm_provider,
+        "llm_model": cfg.gemini_model if cfg.llm_provider == "gemini" else "mock",
+        "llm_configured": cfg.is_llm_configured,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

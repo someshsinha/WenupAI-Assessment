@@ -6,19 +6,23 @@ from app.llm.schemas import ExtractionResult
 
 
 def extract_json_from_text(text: str) -> str:
-    """Extracts JSON string from text, stripping Markdown fences and surrounding commentary."""
+    """Extracts JSON string from text, robustly stripping Markdown code fences, surrounding commentary, and repairing formatting."""
     if not text or not text.strip():
         raise LLMBadResponseError("Received empty response from LLM")
 
     cleaned = text.strip()
 
-    # 1. Strip Markdown code fences if present
-    fence_pattern = re.compile(r"^```(?:json)?\s*([\s\S]*?)\s*```$", re.MULTILINE)
-    match = fence_pattern.search(cleaned)
-    if match:
-        cleaned = match.group(1).strip()
+    # 1. Search for markdown code fences anywhere in the string
+    fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned, re.DOTALL)
+    if fence_match:
+        candidate = fence_match.group(1).strip()
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            cleaned = candidate
 
-    # 2. If valid JSON direct parse works, return it
+    # 2. Try parsing cleaned text directly
     try:
         json.loads(cleaned)
         return cleaned
@@ -36,7 +40,14 @@ def extract_json_from_text(text: str) -> str:
         except json.JSONDecodeError:
             pass
 
-    # Return whatever was extracted or original cleaned text to let json.loads provide exact error
+        # 4. Repair trailing commas in candidate (e.g. [..., ] or {..., })
+        repaired_candidate = re.sub(r",\s*([\}\]])", r"\1", candidate)
+        try:
+            json.loads(repaired_candidate)
+            return repaired_candidate
+        except json.JSONDecodeError:
+            pass
+
     return cleaned
 
 
