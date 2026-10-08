@@ -522,6 +522,35 @@ Enforce strict separation between unacknowledged conflicting statements and expl
 - Created `tests/scenarios/test_golden_scenarios.py` with 8 passing end-to-end scenario tests.
 - Full test suite has 98 passing tests (`pytest -v`).
 
+---
+
+## Log Entry 023 — Architectural Decisions & Blueprint (F25)
+
+### Prompt / Task
+Author `DECISIONS.md` capturing all architectural choices, trade-offs, and future production roadmap:
+1. Deterministic Domain Engine with LLM-as-Extractor vs autonomous agent frameworks (LangGraph/CrewAI).
+2. Domain state `WishesState` as the single source of truth vs conversation history.
+3. Evidence grounding and 1-attempt repair flow.
+4. Contradiction detection vs explicit correction semantics.
+5. Conditional cascades and rules engine.
+6. Deterministic document rendering with mandatory legal notices.
+7. Concurrency isolation with per-session async locks.
+8. Production scaling roadmap (PostgreSQL event-sourcing, Redis distributed locks, OAuth2, OpenTelemetry).
+
+### Output that was useful
+- Comprehensive, structured `DECISIONS.md` created at workspace root.
+
+### What I questioned
+- *Why not let the LLM generate the final legal document directly?*
+  **Answer**: Direct LLM generation risks omitting legally mandated disclaimers or hallucinating clauses. A deterministic templating engine ensures 100% legal compliance and transparency.
+
+### Decision
+Document the deterministic architecture and production blueprint in `DECISIONS.md`.
+
+### Result
+- Created `DECISIONS.md`.
+
+
 
 
 
