@@ -624,6 +624,23 @@ Prepare files and environment for live Google Gemini API integration: create `.e
 - `app/llm/gemini.py` verified with `google.genai` SDK.
 - 101/101 test suite passing.
 
+---
+
+## Log Entry 027 — Robust Markdown Fence Stripping & Free-Tier Model Configuration
+
+### Prompt / Task
+Fix address input fallback issue where Gemini wrapped JSON inside ````json ... ```` fences, causing raw text parser rejection and 0 operations extracted. Also configure active available free-tier model (`gemini-3.5-flash-lite`) to prevent daily rate-limit exhaustion.
+
+### Output that was useful
+- Upgraded `extract_json_from_text` in `app/llm/parsing.py` to use `re.DOTALL` code fence extraction, outermost brace extraction, and trailing comma repair.
+- Updated `GEMINI_MODEL=gemini-3.5-flash-lite` with active RPM/RPD quota.
+- Added test environment isolation in `tests/conftest.py` ensuring fast offline mock testing.
+
+### Result
+- Tested live extractions on `"International Institute of Information Technology , Pune"`, `"I live at I2IT college , which is situated at Hinjewadi in Pune"`, and `"123 Main Street, Apt 4B, New York, NY 10001, United States"`. All parsed with 100% precision.
+- All 101 unit and integration tests passing.
+
+
 
 
 
