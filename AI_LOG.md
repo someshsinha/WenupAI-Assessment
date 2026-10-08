@@ -550,6 +550,34 @@ Document the deterministic architecture and production blueprint in `DECISIONS.m
 ### Result
 - Created `DECISIONS.md`.
 
+---
+
+## Log Entry 024 — Comprehensive Documentation & Quickstart (F26)
+
+### Prompt / Task
+Author `README.md` providing:
+1. System overview and design philosophy.
+2. Architecture flowchart and component breakdown.
+3. Quickstart instructions (virtualenv, dependencies, configuration, test runner, dev server).
+4. Mode selection guide (offline `MockLLMClient` vs live `GeminiClient` with `google-genai`).
+5. Complete API endpoint summary and Three-Column UI walkthrough.
+6. Repository structure.
+
+### Output that was useful
+- Clean, structured markdown documentation covering setup, testing, and production deployment.
+
+### What I questioned
+- *Should README assume an active Gemini key is mandatory for evaluation?*
+  **Answer**: No. The system runs out-of-the-box in `MockLLMClient` mode with 100% test pass rate offline, while supporting 1-variable activation (`LLM_PROVIDER=gemini`) for live Gemini integration.
+
+### Decision
+Document both mock and live Gemini workflows clearly in `README.md`.
+
+### Result
+- Created `README.md`.
+- All 98 tests pass across unit, integration, and golden scenario suites.
+
+
 
 
 
