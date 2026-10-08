@@ -347,6 +347,29 @@ Render document text directly from structured state using deterministic formatti
 - 4 unit tests in `tests/unit/test_docgen.py` verifying disclaimer injection, full completion, empty list representation ("None specified"), and contradiction containment.
 - All 73 tests in the test suite pass.
 
+---
+
+## Log Entry 016 — F15 Session Store + Per-Session Locking
+
+### Prompt / Task
+Implement F15: In-memory `SessionStore` in `app/services/session_store.py` with per-session `asyncio.Lock` concurrency serialization. Ensure concurrent requests targeting the same session (e.g. rapid double-clicks) are executed sequentially without state corruption, while different sessions proceed in parallel without shared blocking.
+
+### Output that was useful
+- `SessionStore` managing session lifecycle (create, get, save, delete, list).
+- Per-session `asynccontextmanager` locking (`store.lock(session_id)`).
+
+### What I questioned
+- *Should we use Redis or distributed locking?*
+  **Answer**: No. PRD explicitly marks Redis/distributed locks as a non-goal for this assessment. An in-memory dictionary with fine-grained `asyncio.Lock` per session ID is clean, fast, and fully sufficient.
+
+### Decision
+Use in-memory `SessionStore` with per-session locking for deterministic concurrency control.
+
+### Result
+- 3 concurrency and CRUD unit tests in `tests/unit/test_session_store.py` verifying serialization of concurrent requests to the same session and parallel execution across distinct sessions.
+- All 76 tests in the test suite pass.
+
+
 
 
 
