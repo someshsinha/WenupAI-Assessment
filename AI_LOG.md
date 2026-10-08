@@ -54,3 +54,26 @@ Use standard `uvicorn` and pure-Python async client testing with `httpx` + `pyte
 - `GET /api/health`, `/`, and `/docs` all return HTTP 200.
 - All 3 tests in `tests/test_health.py` pass.
 
+---
+
+## Log Entry 003 — F02 Domain State Model
+
+### Prompt / Task
+Implement F02: Structured source of truth in `app/domain/models.py` using explicit `FieldStatus` (`UNKNOWN`, `UNCONFIRMED`, `CONFIRMED`, `NOT_APPLICABLE`) and strongly typed models for all assignment fields, changes, clarifications, and sessions.
+
+### Output that was useful
+- Explicit `Field[T]` generic model capturing value, status, evidence, and turn.
+- Models for `Executor`, `Gift`, `WishesState`, `Change`, `PendingClarification`, `Message`, and `Session`.
+
+### What I questioned
+- *Should conversation history hold the current state values?*
+  **Answer**: No. PRD guardrail states conversation history is strictly evidence/audit context. `WishesState` is the sole source of truth.
+
+### Decision
+Model all fields explicitly in `WishesState` and track mutations via immutable `Change` audit logs.
+
+### Result
+- Domain models created with clear status transitions.
+- All 7 new unit tests in `tests/unit/test_domain_models.py` passed (10/10 total tests pass).
+
+
