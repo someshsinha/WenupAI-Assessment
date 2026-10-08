@@ -162,7 +162,12 @@ def apply_operations_to_session(
     if new_session.pending_clarification:
         clarified_field = new_session.pending_clarification.field
         for c in changes:
-            if c.field == clarified_field:
+            if (
+                c.field == clarified_field
+                or (clarified_field.startswith("executor") and c.field.startswith("executor"))
+                or (clarified_field == "has_children" and c.field in ("has_children", "children"))
+                or (clarified_field == "children" and c.field in ("has_children", "children"))
+            ):
                 new_session.pending_clarification = None
                 break
 

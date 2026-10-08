@@ -7,6 +7,7 @@ def detect_contradictions(
     state: WishesState,
     operations: list[dict[str, Any]],
     user_message: str = "",
+    pending_clarification: PendingClarification | None = None,
 ) -> list[PendingClarification]:
     """Detects contradictions between proposed operations/user statements and already confirmed state.
     Returns a list of PendingClarification objects.
@@ -21,6 +22,14 @@ def detect_contradictions(
         op = op_dict.get("op", "set")
 
         if not field or is_corr:
+            continue
+
+        # If this field is currently under pending clarification, user's input is a clarification attempt
+        if pending_clarification and (
+            pending_clarification.field == field
+            or (pending_clarification.field.startswith("executor") and field.startswith("executor"))
+            or (pending_clarification.field == "has_children" and field in ("has_children", "children"))
+        ):
             continue
 
         current_val, is_confirmed = _get_field_status_and_val(state, field)

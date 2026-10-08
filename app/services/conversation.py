@@ -74,14 +74,29 @@ class ConversationService:
 
         # 5. Contradiction Detection against confirmed state
         proposed_ops_dicts = [op.model_dump() for op in grounded_ops]
+
+        # If pending clarification is active, any valid operations addressing the pending issue are clarification resolutions
+        if new_session.pending_clarification:
+            target_f = new_session.pending_clarification.field
+            for op_dict in proposed_ops_dicts:
+                f = op_dict.get("field", "")
+                if (
+                    f == target_f
+                    or (target_f.startswith("executor") and f.startswith("executor"))
+                    or (target_f == "has_children" and f in ("has_children", "children"))
+                    or (target_f == "children" and f in ("has_children", "children"))
+                ):
+                    op_dict["is_correction"] = True
+
         detected_contradictions = detect_contradictions(
             state=new_session.state,
             operations=proposed_ops_dicts,
             user_message=user_message,
+            pending_clarification=new_session.pending_clarification,
         )
 
-        # Check if model also flagged an explicit contradiction
-        if extraction_result.contradictions and not detected_contradictions:
+        # Check if model also flagged an explicit contradiction (and it's not a clarification resolution)
+        if extraction_result.contradictions and not detected_contradictions and not new_session.pending_clarification:
             for ec in extraction_result.contradictions:
                 from app.domain.models import PendingClarification
                 detected_contradictions.append(

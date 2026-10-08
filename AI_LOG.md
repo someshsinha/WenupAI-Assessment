@@ -577,6 +577,33 @@ Document both mock and live Gemini workflows clearly in `README.md`.
 - Created `README.md`.
 - All 98 tests pass across unit, integration, and golden scenario suites.
 
+---
+
+## Log Entry 025 — Manual Session Fixes: Address Fallback, Role vs Name Separation, & Contradiction Resolution
+
+### Prompt / Task
+Fix 3 manual testing regressions:
+1. **Repeated Address Loop**: Unformatted / institutional locations (e.g. "International Institute of Information Technology, Pune", "allbakaspur") were rejected by strict regexes, trapping the user in an address loop.
+2. **Role Descriptor Stored as Executor Name**: Descriptive relationship roles (e.g. "my mistress", "my lover", "my future wife") were parsed as `executor.name`.
+3. **Stuck Contradiction Loop**: When clarifying a contradiction, the new clarifying statement was treated as a secondary contradiction against old confirmed state, trapping the session.
+
+### Output that was useful
+- Relaxed address fallback in `MockLLMClient` to accept non-empty text when `home_address` is unknown and `full_name` is known.
+- Separated relationship descriptors (`mistress`, `lover`, `wife`, `spouse`, etc.) to `executor.relationship`, leaving `executor.name` unknown until a proper name is provided.
+- Fixed `ConversationService`, `detect_contradictions`, and `reducer.py` so that answering a pending clarification resolves the contradiction, applies the new state with `is_correction=True`, and clears `pending_clarification`.
+
+### What I questioned
+- *Should providing a real name after an informal relationship descriptor trigger a contradiction?*
+  **Answer**: No. If `executor.name` was unknown and the user was only describing the role (e.g., "my mistress"), providing the actual name and relationship ("Her name is Emily, she is my spouse") completes the executor's identity.
+
+### Decision
+Treat active `pending_clarification` responses as intent resolutions and allow smooth state advancement.
+
+### Result
+- Created `tests/integration/test_manual_session_regressions.py` covering all 3 scenarios.
+- All 101 tests pass across unit, integration, and scenario suites.
+
+
 
 
 
