@@ -258,6 +258,29 @@ Quarantine any operation whose evidence fails grounding against the current user
 - 6 unit tests in `tests/unit/test_grounding.py` covering exact matches, punctuation/whitespace normalization, token overlap, and rejection of fabricated/stale evidence.
 - All 54 tests pass.
 
+---
+
+## Log Entry 012 — F11 Robust LLM Response Parsing + Recovery
+
+### Prompt / Task
+Implement F11: Single parsing utility in `app/llm/parsing.py` supporting Markdown code fence stripping, JSON extraction from surrounding text, Pydantic validation, and a single-retry repair loop with safe failure containment.
+
+### Output that was useful
+- `extract_json_from_text` isolating clean JSON from Markdown fences and commentary.
+- `extract_with_repair` giving the LLM one opportunity to correct malformed output with error details before safely aborting.
+
+### What I questioned
+- *What happens if the second LLM response is also malformed?*
+  **Answer**: Return `(None, error)` cleanly so the conversation service leaves state unchanged and responds with a friendly retry message. Never allow a partial or corrupted state mutation.
+
+### Decision
+Enforce a 2-strike parsing policy: attempt 1 $\rightarrow$ repair attempt 2 $\rightarrow$ friendly fallback if still failing.
+
+### Result
+- 6 unit tests in `tests/unit/test_parsing_recovery.py` verifying plain JSON, code fences, text commentary, repair success, and safe two-failure handling.
+- All 60 tests pass.
+
+
 
 
 
