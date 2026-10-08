@@ -165,6 +165,30 @@ Enforce deterministic rule cascades post-operation so invalid state combinations
 - 5 unit tests in `tests/unit/test_rules.py` covering all cascades and empty list transitions.
 - All 31 tests pass.
 
+---
+
+## Log Entry 008 — F07 Deterministic Planner
+
+### Prompt / Task
+Implement F07: Deterministic Planner in `app/domain/planner.py` to decide **WHAT** action happens next (resolving contradictions, confirming unconfirmed fields, asking for missing fields in strict order, or completing the document).
+
+### Output that was useful
+- `PlannerAction` enum representing all valid workflow actions.
+- Priority engine: `RESOLVE_CONTRADICTION` $\rightarrow$ `CONFIRM_UNCONFIRMED` $\rightarrow$ Next missing field $\rightarrow$ `COMPLETE`.
+- Helpers `get_missing_fields` and `is_state_complete`.
+
+### What I questioned
+- *Should the LLM decide which field to ask next?*
+  **Answer**: No. Deterministic planner owns workflow decisions. This guarantees zero skipped required fields, no hallucinated steps, and predictable interview flow.
+
+### Decision
+Keep planner logic 100% deterministic outside the LLM. The LLM will only be responsible for phrasing (F13).
+
+### Result
+- 7 unit tests created in `tests/unit/test_planner.py`.
+- All 38 tests in the test suite pass.
+
+
 
 
 
