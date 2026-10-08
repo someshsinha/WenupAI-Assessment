@@ -42,6 +42,29 @@ def test_children_contradiction_when_has_children_confirmed_false():
     assert state.has_children.value is False
 
 
+def test_children_contradiction_when_has_children_confirmed_true_and_user_says_no_children():
+    state = WishesState(
+        has_children=Field[bool](value=True, status=FieldStatus.CONFIRMED),
+        children=Field[list[str]](value=["Aarav", "Anaya"], status=FieldStatus.CONFIRMED),
+    )
+
+    user_msg = "Actually, I don't have any children."
+    proposed_ops = [
+        {"op": "set", "field": "has_children", "value": False, "evidence": "I don't have any children", "is_correction": False}
+    ]
+
+    contradictions = detect_contradictions(state, proposed_ops, user_message=user_msg)
+    assert len(contradictions) == 1
+    assert contradictions[0].field == "has_children"
+    assert contradictions[0].issue_type == "contradiction"
+    assert "Earlier you stated that you have children" in contradictions[0].question_to_ask
+
+    # State remains confirmed True
+    assert state.has_children.value is True
+    assert state.children.value == ["Aarav", "Anaya"]
+
+
+
 def test_explicit_correction_is_not_treated_as_contradiction():
     state = WishesState(
         full_name=Field[str](value="Alice Smith", status=FieldStatus.CONFIRMED)

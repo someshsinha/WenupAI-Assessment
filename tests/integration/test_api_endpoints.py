@@ -89,6 +89,73 @@ async def test_api_multi_field_worldwide_and_children_regression():
         assert "Anaya" in doc_text
 
 
+@pytest.mark.asyncio
+async def test_api_has_children_true_then_user_says_no_children_contradiction_regression():
+    """Regression test: has_children=true confirmed -> user says 'Actually, I don't have any children.' -> contradiction generated, state unchanged."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create session
+        res = await client.post("/api/sessions")
+        session_id = res.json()["session_id"]
+
+        # Step 1: Set has_children=true and children
+        await client.post(
+            f"/api/sessions/{session_id}/messages",
+            json={"message": "I have two children named Aarav and Anaya"},
+        )
+
+        # Step 2: Send negation statement
+        res = await client.post(
+            f"/api/sessions/{session_id}/messages",
+            json={"message": "Actually, I don't have any children."},
+        )
+        assert res.status_code == 200
+        data = res.json()
+
+        # Must flag pending clarification with contradiction
+        assert data["pending_clarification"] is not None
+        assert data["pending_clarification"]["field"] == "has_children"
+        assert data["pending_clarification"]["issue_type"] == "contradiction"
+
+        # State must remain confirmed true and children preserved until resolved
+        assert data["state"]["has_children"]["value"] is True
+        assert data["state"]["children"]["value"] == ["Aarav", "Anaya"]
+        assert "Aarav" in data["document"]["text"]
+
+
+@pytest.mark.asyncio
+async def test_api_has_children_false_then_user_mentions_son_contradiction_regression():
+    """Regression test: has_children=false confirmed -> user says 'I actually have a son named Aarav' -> contradiction generated, state unchanged."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create session
+        res = await client.post("/api/sessions")
+        session_id = res.json()["session_id"]
+
+        # Step 1: Set has_children=false
+        await client.post(
+            f"/api/sessions/{session_id}/messages",
+            json={"message": "I have no children"},
+        )
+
+        # Step 2: User says "I actually have a son named Aarav."
+        res = await client.post(
+            f"/api/sessions/{session_id}/messages",
+            json={"message": "I actually have a son named Aarav."},
+        )
+        assert res.status_code == 200
+        data = res.json()
+
+        # Must flag pending clarification with contradiction
+        assert data["pending_clarification"] is not None
+        assert data["pending_clarification"]["field"] == "has_children"
+        assert data["pending_clarification"]["issue_type"] == "contradiction"
+
+        # State remains false until resolved
+        assert data["state"]["has_children"]["value"] is False
+
+
+
 
 @pytest.mark.asyncio
 async def test_api_unknown_session_returns_404():

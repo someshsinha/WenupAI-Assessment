@@ -134,14 +134,19 @@ class MockLLMClient:
             })
 
         # 4. Children
-        if re.search(r"\b(no children|no kids|don't have children|do not have any children|haven't got children|have no kids|have no children)\b", user_message, re.I):
+        no_kids_match = re.search(
+            r"(?:i\s+)?(?:don't|do not|haven't got|have no)\s+(?:any\s+)?(?:children|kids)|no\s+(?:children|kids)",
+            user_message,
+            re.I,
+        )
+        if no_kids_match:
             operations.append({
                 "op": "set",
                 "field": "has_children",
                 "value": False,
-                "evidence": user_message,
+                "evidence": no_kids_match.group(0).strip(),
                 "confidence": "high",
-                "is_correction": is_correction,
+                "is_correction": False,
             })
         elif re.search(r"\b(a few kids|a few children|some kids)\b", user_message, re.I):
             ambiguities.append({
@@ -151,7 +156,7 @@ class MockLLMClient:
             })
         else:
             kids_match = re.search(
-                r"(?:have|got)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)?\s*(?:children|kids|child|sons?|daughters?)(?::\s*|\s+named\s+|\s+called\s+)?([A-Za-z\s,and]+)?",
+                r"(?:have|got)\s+(?:a|an|\d+|one|two|three|four|five|six|seven|eight|nine|ten)?\s*(?:children|kids|child|sons?|daughters?)(?::\s*|\s+named\s+|\s+called\s+)?([A-Za-z\s,and]+)?",
                 user_message,
                 re.I,
             )
@@ -162,14 +167,14 @@ class MockLLMClient:
                     "value": True,
                     "evidence": kids_match.group(0).strip(),
                     "confidence": "high",
-                    "is_correction": is_correction,
+                    "is_correction": False,
                 })
                 names_str = kids_match.group(1)
                 if names_str:
                     clean_names = [
                         n.strip()
                         for n in re.split(r",|\band\b", names_str)
-                        if n.strip() and not re.search(r"\b(named|called|have|assets|executor|world|live|name|is)\b", n, re.I)
+                        if n.strip() and not re.search(r"\b(named|called|have|assets|executor|world|live|name|is|actually)\b", n, re.I)
                     ]
                     if clean_names:
                         operations.append({
@@ -178,7 +183,7 @@ class MockLLMClient:
                             "value": clean_names,
                             "evidence": names_str.strip(),
                             "confidence": "high",
-                            "is_correction": is_correction,
+                            "is_correction": False,
                         })
             elif state.get("has_children", {}).get("value") is True and state.get("children", {}).get("status") == "unknown":
                 clean_names = [n.strip() for n in re.split(r",|\band\b", user_message) if n.strip() and n.strip().isalpha()]
@@ -191,6 +196,7 @@ class MockLLMClient:
                         "confidence": "high",
                         "is_correction": is_correction,
                     })
+
 
         # 5. Executor
         exec_match = re.search(r"(?:my\s+)?(brother|sister|friend|spouse|wife|husband|partner|lawyer|mother|father|son|daughter)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", user_message, re.I)

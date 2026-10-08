@@ -437,6 +437,32 @@ Ensure each recognized domain pattern produces an independent grounded operation
 - Verified that `"I have assets around the world and I have two children named Aarav and Anaya."` correctly produces `covers_worldwide_assets: true`, `has_children: true`, `children: ["Aarav", "Anaya"]`, and leaves `additional_wishes` untouched.
 - All 84 tests pass.
 
+---
+
+## Log Entry 020 — Bidirectional Children Contradiction Fix & Regression (F05)
+
+### Prompt / Task
+Address F05 regression found during manual testing: When state has `has_children=True` confirmed (with children), sending an unacknowledged negation like *"Actually, I don't have any children."* must produce an operation with `is_correction=False` and trigger a `PendingClarification(issue_type="contradiction")` while keeping the confirmed state intact. Also verify the reverse direction (`has_children=False` $\rightarrow$ *"I actually have a son named Aarav."*).
+
+### Output that was useful
+- Enhanced `MockLLMClient` to output uncorrected operations for explicit negation statements so they route to the domain contradiction engine.
+- Strengthened `detect_contradictions` in `app/domain/contradictions.py` with bidirectional checks:
+  - `has_children=True` $\leftrightarrow$ `has_children=False` statements.
+  - `has_children=False` $\leftrightarrow$ mentioning children, sons, or daughters.
+- Natural question formatting for boolean/family contradictions.
+
+### What I questioned
+- *Should the system silently overwrite confirmed `has_children=True` and delete children when the user says 'I don't have children'?*
+  **Answer**: No. PRD F05 guardrail explicitly states: *Contradiction $\neq$ Correction. An unacknowledged conflict must pause and create a PendingClarification.* State must remain confirmed until the user explicitly resolves the ambiguity.
+
+### Decision
+Enforce bidirectional contradiction detection across boolean family fields and test both directions.
+
+### Result
+- Added unit test in `tests/unit/test_contradictions.py` and two API regression tests in `tests/integration/test_api_endpoints.py`.
+- All 87 tests pass.
+
+
 
 
 
