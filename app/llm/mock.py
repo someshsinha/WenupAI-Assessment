@@ -336,7 +336,14 @@ class MockLLMClient:
                 })
 
         # 7. Additional Wishes
-        if re.search(r"\b(no additional wishes|no other wishes|nothing else|no wishes|that is all|that's all)\b", user_message, re.I):
+        is_at_wishes_stage = (
+            state.get("additional_wishes", {}).get("status") == "unknown" and
+            state.get("full_name", {}).get("status") in ("confirmed", "unconfirmed") and
+            state.get("home_address", {}).get("status") in ("confirmed", "unconfirmed") and
+            state.get("executor", {}).get("name", {}).get("status") in ("confirmed", "unconfirmed")
+        )
+
+        if re.search(r"\b(no additional wishes|no other wishes|nothing else|no wishes|that is all|that's all|nothing|not much|none|no baba|not nope|nope|finalize|wrap up|all done)\b", user_message, re.I):
             operations.append({
                 "op": "set",
                 "field": "additional_wishes",
@@ -354,6 +361,27 @@ class MockLLMClient:
                 "confidence": "high",
                 "is_correction": is_correction,
             })
+        elif is_at_wishes_stage and not operations and not is_gift_stmt and not rel_found and not found_name:
+            # At wishes stage with a non-empty statement
+            clean_stmt = user_message.strip()
+            if clean_stmt and not re.search(r"^(?:yes|no|ok|sure|fine)$", clean_stmt, re.I):
+                operations.append({
+                    "op": "add",
+                    "field": "additional_wishes",
+                    "value": clean_stmt,
+                    "evidence": clean_stmt,
+                    "confidence": "high",
+                    "is_correction": is_correction,
+                })
+            elif re.search(r"^(?:no|none|nothing|not really|nope)$", clean_stmt, re.I):
+                operations.append({
+                    "op": "set",
+                    "field": "additional_wishes",
+                    "value": [],
+                    "evidence": clean_stmt,
+                    "confidence": "high",
+                    "is_correction": is_correction,
+                })
 
 
         return json.dumps({

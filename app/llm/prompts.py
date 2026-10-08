@@ -15,7 +15,7 @@ ALLOWED FIELD PATHS:
 - has_children (boolean: true/false)
 - children (list of strings: children's names)
 - executor.name (string: executor's name)
-- executor.relationship (string: relationship to user, e.g. brother, friend, spouse)
+- executor.relationship (string: relationship to user, e.g. brother, friend, spouse, mistress)
 - specific_gifts (list of objects: {"item": string, "recipient": string | null})
 - additional_wishes (list of strings: wishes/instructions)
 
@@ -29,10 +29,18 @@ OPERATIONS:
 RULES:
 1. Every operation MUST include exact 'evidence' (the verbatim phrase from the latest user message justifying the value).
 2. If the user makes an explicit correction (e.g., "Actually, my name is...", "Correction:", "Instead of..."), set 'is_correction': true.
-3. If the user statement is vague (e.g. "a few kids", "some stuff"), record an ambiguity entry instead of inventing facts.
-4. If the user explicitly states they have no children, set has_children to false.
-5. If the user explicitly states they have no specific gifts or no wishes, set the field value to [] (empty list).
-6. Return ONLY valid JSON adhering to the extraction schema.
+3. CONCISE NEGATIVE & CLOSING RESPONSES:
+   - When asked about additional wishes or final thoughts, responses indicating no further wishes (such as "nothing", "not much", "none", "no", "nope", "no baba", "not nope", "that's all", "that is all", "finalize", "nothing please finalize", "all done") MUST be extracted as:
+     {"op": "set", "field": "additional_wishes", "value": [], "evidence": "<verbatim user phrase>", "confidence": "high", "is_correction": false}
+   - When asked about specific gifts, responses indicating no gifts (such as "no gifts", "none", "nothing", "no special gifts") MUST be extracted as:
+     {"op": "set", "field": "specific_gifts", "value": [], "evidence": "<verbatim user phrase>", "confidence": "high", "is_correction": false}
+   - When asked about children, responses indicating no children (such as "no", "none", "I don't have children") MUST be extracted as:
+     {"op": "set", "field": "has_children", "value": false, "evidence": "<verbatim user phrase>", "confidence": "high", "is_correction": false}
+4. FREE-FORM WISHES:
+   - If the user provides any free-form instructions, preferences, memorial wishes, or personal statements for additional wishes (e.g. "play jazz at my funeral", "sex is very nice", "donate books to library"), extract them into "additional_wishes" list.
+5. AMBIGUITY HANDLING:
+   - Only flag ambiguities for genuinely unclear statements where a user intent cannot be determined. Do NOT flag concise negative answers ("nothing", "no", "not much") as ambiguous.
+6. Return ONLY valid JSON adhering strictly to the extraction schema.
 """
 
 

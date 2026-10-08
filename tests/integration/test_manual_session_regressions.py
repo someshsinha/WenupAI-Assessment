@@ -119,3 +119,38 @@ async def test_regression_contradiction_resolution_not_stuck_in_infinite_loop():
         assert data_clarified["state"]["executor"]["name"]["value"] == "Emily"
         assert data_clarified["state"]["executor"]["name"]["status"] == "confirmed"
         assert data_clarified["state"]["executor"]["relationship"]["value"] == "wife"
+
+
+@pytest.mark.asyncio
+async def test_regression_additional_wishes_concise_negative_answers_complete_session():
+    """
+    Bug 4 Regression:
+    When user is asked for additional wishes and replies with concise negative or wrap-up words
+    like 'not much', 'nothing', 'no baba', 'nothing please finalize', it must be confirmed as
+    additional_wishes = [] and complete the session without repeatedly asking for wishes.
+    """
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.post("/api/sessions")
+        session_id = res.json()["session_id"]
+
+        # Run through turns up to specific gifts
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "Amar Akbar Anthony"})
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "123 Main Street, Apt 4B, New York, NY 10001, United States"})
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "Yes, worldwide assets"})
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "I have one child named John"})
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "My mistress Pamela Anderson is the executor"})
+        await client.post(f"/api/sessions/{session_id}/messages", json={"message": "I leave my watch to John"})
+
+        # User responds with concise negative
+        turn_res = await client.post(
+            f"/api/sessions/{session_id}/messages",
+            json={"message": "nothing pleae finalize"}
+        )
+        assert turn_res.status_code == 200
+        data = turn_res.json()
+        assert data["state"]["additional_wishes"]["value"] == []
+        assert data["state"]["additional_wishes"]["status"] == "confirmed"
+        assert data["is_complete"] is True
+        assert len(data["missing_fields"]) == 0
+
