@@ -188,6 +188,30 @@ Keep planner logic 100% deterministic outside the LLM. The LLM will only be resp
 - 7 unit tests created in `tests/unit/test_planner.py`.
 - All 38 tests in the test suite pass.
 
+---
+
+## Log Entry 009 — F08 LLM Interface + Mock Provider
+
+### Prompt / Task
+Implement F08: LLM provider abstraction in `app/llm/base.py`, deterministic offline `MockLLMClient` in `app/llm/mock.py`, and `GeminiClient` in `app/llm/gemini.py`. Ensure the entire suite can run without live API keys and errors map to typed application exceptions.
+
+### Output that was useful
+- `LLMClient` Protocol defining `extract` and `compose`.
+- `MockLLMClient` with pattern-based extraction for all intake fields, scriptable responses, and error simulations.
+- `GeminiClient` with timeout handling and error mapping (`LLMNotConfiguredError`, `LLMProviderError`, `LLMTimeoutError`).
+
+### What I questioned
+- *Should tests require network access or a live Gemini API key?*
+  **Answer**: No. The PRD explicitly requires deterministic offline testing via `MockLLMClient`. Live keys are purely optional for real-world execution.
+
+### Decision
+Use `MockLLMClient` as the default test and development client so the application works out-of-the-box without setup barriers.
+
+### Result
+- 6 unit tests in `tests/unit/test_llm_clients.py` verifying mock extraction, composing, scripted errors, and unconfigured Gemini key behavior.
+- All 44 tests pass.
+
+
 
 
 
