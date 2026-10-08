@@ -18,14 +18,11 @@ class MockLLMClient:
         schema: dict[str, Any] | None = None,
     ) -> str:
         if self.simulate_error:
-            err = self.simulate_error
-            self.simulate_error = None
-            raise err
+            raise self.simulate_error
 
         if self.scripted_extraction is not None:
-            res = self.scripted_extraction
-            self.scripted_extraction = None
-            return res
+            return self.scripted_extraction
+
 
         user_message = payload.get("user_message", "").strip()
         state = payload.get("state", {})
@@ -41,9 +38,16 @@ class MockLLMClient:
             user_intent = "correction"
 
         # 1. Full name detection
-        name_match = re.search(r"(?:my name is|i am|name is|i'm)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?=\s+(?:and\b|living\b|live\b|my\b|i\b|at\b|[0-9]|$|\.|\,))", user_message, re.I)
+        name_match = re.search(
+            r"(?:my name is|i am|name is|i'm)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?=[,\s]+(?:and\b|living\b|live\b|my\b|i\b|at\b|[0-9]|$|\.))",
+            user_message,
+            re.I,
+        )
+        if not name_match:
+            name_match = re.search(r"(?:my name is|i am|name is|i'm)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)", user_message, re.I)
+
         if name_match:
-            val = name_match.group(1).strip()
+            val = name_match.group(1).strip().rstrip(",.")
             if len(val.split()) >= 2:
                 operations.append({
                     "op": "set",
@@ -66,11 +70,14 @@ class MockLLMClient:
                     "is_correction": is_correction,
                 })
 
-
         # 2. Address detection
-        addr_match = re.search(r"(?:i live at|living at|address is|at)\s+([0-9]+[^.,\n]+(?:street|st|road|rd|avenue|ave|lane|london|manchester|uk|drive|dr)[^.,\n]*)", user_message, re.I)
+        addr_match = re.search(
+            r"(?:i live at|living at|address is|at)\s+([0-9]+[A-Za-z0-9\s,]+?(?:street|st|road|rd|avenue|ave|lane|london|manchester|uk|drive|dr|way)[A-Za-z0-9\s,]*?)(?=[,\s]+(?:and\b|my\b|i\b|with\b|$|\.))",
+            user_message,
+            re.I,
+        )
         if addr_match:
-            val = addr_match.group(1).strip()
+            val = addr_match.group(1).strip().rstrip(",.")
             operations.append({
                 "op": "set",
                 "field": "home_address",
@@ -84,11 +91,12 @@ class MockLLMClient:
                 operations.append({
                     "op": "set",
                     "field": "home_address",
-                    "value": user_message.strip(),
+                    "value": user_message.strip().rstrip(",."),
                     "evidence": user_message.strip(),
                     "confidence": "high",
                     "is_correction": is_correction,
                 })
+
 
         # 3. Worldwide assets
         if re.search(r"\b(worldwide|covers worldwide|global assets|all my assets worldwide)\b", user_message, re.I) or (
@@ -125,7 +133,6 @@ class MockLLMClient:
                 "is_correction": is_correction,
             })
         elif re.search(r"\b(a few kids|a few children|some kids)\b", user_message, re.I):
-            # Ambiguous children count/names
             ambiguities.append({
                 "field": "children",
                 "evidence": user_message,
@@ -155,7 +162,6 @@ class MockLLMClient:
                             "is_correction": is_correction,
                         })
             elif state.get("has_children", {}).get("value") is True and state.get("children", {}).get("status") == "unknown":
-                # Standalone children names provided
                 clean_names = [n.strip() for n in re.split(r",|\band\b", user_message) if n.strip() and n.strip().isalpha()]
                 if clean_names:
                     operations.append({
@@ -190,6 +196,12 @@ class MockLLMClient:
             })
         else:
             exec_name_match = re.search(r"(?:executor is|appoint|executor:)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", user_message, re.I)
+            if not exec_name_match:
+                # E.g. "Actually, Bob Smith is my executor"
+                exec_name_match2 = re.search(r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:is my executor|as executor)", user_message, re.I)
+                if exec_name_match2:
+                    exec_name_match = exec_name_match2
+
             if exec_name_match:
                 operations.append({
                     "op": "set",
@@ -209,6 +221,7 @@ class MockLLMClient:
                     "confidence": "high",
                     "is_correction": is_correction,
                 })
+
 
         # 6. Specific Gifts
         if re.search(r"\b(no specific gifts|no gifts|nothing specific|don't have any specific gifts|no special gifts)\b", user_message, re.I):

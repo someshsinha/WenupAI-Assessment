@@ -280,6 +280,30 @@ Enforce a 2-strike parsing policy: attempt 1 $\rightarrow$ repair attempt 2 $\ri
 - 6 unit tests in `tests/unit/test_parsing_recovery.py` verifying plain JSON, code fences, text commentary, repair success, and safe two-failure handling.
 - All 60 tests pass.
 
+---
+
+## Log Entry 013 — F12 Conversation Service
+
+### Prompt / Task
+Implement F12: Turn orchestration service in `app/services/conversation.py`. Wire together incoming messages, extraction + repair, evidence grounding, contradiction checks, deterministic reducer state updates, planner action selection, response composition, and safe fallback containment.
+
+### Output that was useful
+- Clean orchestrator pipeline managing the complete turn boundary.
+- Multiple fields in a single message captured atomically in one turn.
+- Contradiction detection pausing mutations and preserving confirmed state.
+
+### What I questioned
+- *If extraction fails completely due to invalid JSON or LLM provider errors, how should the conversation recover?*
+  **Answer**: Leave state untouched (0 changes), record the turn cleanly, and return a polite fallback asking the user to repeat or rephrase.
+
+### Decision
+Keep the domain reducer and planner completely decoupled from I/O and LLM providers; `ConversationService` serves as the single orchestrator.
+
+### Result
+- 5 integration tests in `tests/unit/test_conversation_service.py` verifying multi-field intake, contradiction pause, corrections, malformed response handling, and provider error safety.
+- All 65 tests pass.
+
+
 
 
 
