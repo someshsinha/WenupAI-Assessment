@@ -50,10 +50,12 @@ def detect_contradictions(
 
 
     # 2. Semantic Cross-field contradiction checks for has_children:
-    # Direction A: has_children is confirmed False, but user mentions children / son / daughter or sets has_children=True
+    # Direction A: has_children is confirmed False, but user mentions children / son / daughter or sets has_children=True without correction
     if state.has_children.is_confirmed() and state.has_children.value is False:
         # Check operations setting has_children=True or targeting children
         for op_dict in operations:
+            if op_dict.get("is_correction", False):
+                continue
             if (op_dict.get("field") == "has_children" and op_dict.get("value") is True) or op_dict.get("field") == "children":
                 if not any(c.field == "has_children" for c in contradictions):
                     contradictions.append(
@@ -69,25 +71,28 @@ def detect_contradictions(
                         )
                     )
 
-        # Check user message text for references to child/son/daughter
-        child_keywords = re.compile(r"\b(my son|my daughter|my child|my children|my kids|son|daughter)\b", re.IGNORECASE)
-        if user_message and child_keywords.search(user_message) and not any(c.field == "has_children" for c in contradictions):
-            contradictions.append(
-                PendingClarification(
-                    field="has_children",
-                    issue_type="contradiction",
-                    user_statement=user_message,
-                    conflicting_value=user_message,
-                    question_to_ask=(
-                        "Earlier you stated that you do not have children, but your message mentioned a child or son/daughter. "
-                        "Could you clarify if you have children you'd like to include?"
-                    ),
+        # Check user message text for references to child/son/daughter if not an explicit correction
+        if not any(op_dict.get("is_correction", False) for op_dict in operations):
+            child_keywords = re.compile(r"\b(my son|my daughter|my child|my children|my kids|son|daughter)\b", re.IGNORECASE)
+            if user_message and child_keywords.search(user_message) and not any(c.field == "has_children" for c in contradictions):
+                contradictions.append(
+                    PendingClarification(
+                        field="has_children",
+                        issue_type="contradiction",
+                        user_statement=user_message,
+                        conflicting_value=user_message,
+                        question_to_ask=(
+                            "Earlier you stated that you do not have children, but your message mentioned a child or son/daughter. "
+                            "Could you clarify if you have children you'd like to include?"
+                        ),
+                    )
                 )
-            )
 
-    # Direction B: has_children is confirmed True, but user states they have no children / sets has_children=False
+    # Direction B: has_children is confirmed True, but user states they have no children / sets has_children=False without correction
     if state.has_children.is_confirmed() and state.has_children.value is True:
         for op_dict in operations:
+            if op_dict.get("is_correction", False):
+                continue
             if op_dict.get("field") == "has_children" and op_dict.get("value") is False:
                 if not any(c.field == "has_children" for c in contradictions):
                     contradictions.append(
@@ -103,20 +108,21 @@ def detect_contradictions(
                         )
                     )
 
-        no_child_keywords = re.compile(r"\b(no children|no kids|don't have children|don't have any children|do not have any children|have no children|have no kids)\b", re.IGNORECASE)
-        if user_message and no_child_keywords.search(user_message) and not any(c.field == "has_children" for c in contradictions):
-            contradictions.append(
-                PendingClarification(
-                    field="has_children",
-                    issue_type="contradiction",
-                    user_statement=user_message,
-                    conflicting_value=False,
-                    question_to_ask=(
-                        "Earlier you stated that you have children, but you just mentioned that you do not have any children. "
-                        "Could you clarify whether you have children you wish to include?"
-                    ),
+        if not any(op_dict.get("is_correction", False) for op_dict in operations):
+            no_child_keywords = re.compile(r"\b(no children|no kids|don't have children|don't have any children|do not have any children|have no children|have no kids)\b", re.IGNORECASE)
+            if user_message and no_child_keywords.search(user_message) and not any(c.field == "has_children" for c in contradictions):
+                contradictions.append(
+                    PendingClarification(
+                        field="has_children",
+                        issue_type="contradiction",
+                        user_statement=user_message,
+                        conflicting_value=False,
+                        question_to_ask=(
+                            "Earlier you stated that you have children, but you just mentioned that you do not have any children. "
+                            "Could you clarify whether you have children you wish to include?"
+                        ),
+                    )
                 )
-            )
 
     return contradictions
 

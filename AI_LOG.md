@@ -491,6 +491,38 @@ Mount static directory at `/static` and root `/` with `html=True` using `fastapi
 - Created `tests/integration/test_static_frontend.py` and updated `tests/test_health.py`.
 - All 90 tests pass.
 
+---
+
+## Log Entry 022 — Golden Scenario Suite (F23)
+
+### Prompt / Task
+Implement Feature F23 (Golden Scenario Test Suite):
+1. Scenario 1: *Sequential Happy Path* through all fields to full document completion.
+2. Scenario 2: *Atomic Multi-field Turn* with worldwide assets and named children.
+3. Scenario 3: *Contradiction Detection, Pause, & Explicit Resolution*.
+4. Scenario 4: *Mid-session Explicit Correction* with audit logging.
+5. Scenario 5: *Unrelated Chit-chat / Hallucinated Input Rejection*.
+6. Scenario 6: *Conditional Cascade Rules* (`has_children=False` $\rightarrow$ `children=NOT_APPLICABLE`, subsequent correction resets to `UNKNOWN`).
+7. Scenario 7: *Direct Manual State Override* (`PATCH /api/sessions/{id}/state`).
+8. Scenario 8: *LLM Failure Recovery & Graceful Fallback*.
+
+### Output that was useful
+- All 8 comprehensive golden scenarios implemented in `tests/scenarios/test_golden_scenarios.py`.
+- Refined extraction layer to distinguish explicit correction keywords (`correction`, `mistake`, `change my`) from soft conversational words (`actually`) when evaluating sensitive boolean flips.
+- Ensured cross-field contradiction checks in `app/domain/contradictions.py` respect explicit correction flags (`is_correction=True`).
+
+### What I questioned
+- *Should soft conversational words like 'actually' allow bypassing contradiction checks on cascade-triggering fields?*
+  **Answer**: No. Negation of children/family status requires explicit correction or clear resolution to safeguard downstream state integrity.
+
+### Decision
+Enforce strict separation between unacknowledged conflicting statements and explicit corrections across both domain engine and mock/extraction layers.
+
+### Result
+- Created `tests/scenarios/test_golden_scenarios.py` with 8 passing end-to-end scenario tests.
+- Full test suite has 98 passing tests (`pytest -v`).
+
+
 
 
 

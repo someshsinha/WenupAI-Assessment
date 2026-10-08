@@ -6,7 +6,7 @@ const STATE = {
     sessionId: null,
     turnCount: 0,
     state: null,
-    pendingClarifications: [],
+    pendingClarification: null,
     document: null
 };
 
@@ -36,8 +36,7 @@ async function initSession() {
     try {
         const res = await fetch('/api/sessions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ client_id: 'browser_user' })
+            headers: { 'Content-Type': 'application/json' }
         });
         if (!res.ok) throw new Error('Failed to create session');
         const data = await res.json();
@@ -65,8 +64,8 @@ async function syncSession() {
         const data = await res.json();
         
         STATE.state = data.state;
-        STATE.pendingClarifications = data.pending_clarifications || [];
-        STATE.turnCount = data.turn_count || 0;
+        STATE.pendingClarification = data.pending_clarification;
+        STATE.turnCount = (data.messages || []).length;
         
         updateStateUI();
         await updateDocumentPreview();
@@ -87,7 +86,7 @@ async function sendMessage(content) {
         const res = await fetch(`/api/sessions/${STATE.sessionId}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content })
+            body: JSON.stringify({ message: content })
         });
 
         if (!res.ok) {
@@ -99,7 +98,7 @@ async function sendMessage(content) {
         appendMessage('assistant', data.assistant_message);
         
         STATE.state = data.state;
-        STATE.pendingClarifications = data.pending_clarifications || [];
+        STATE.pendingClarification = data.pending_clarification;
         STATE.turnCount = (STATE.turnCount || 0) + 1;
         
         updateStateUI();
@@ -139,24 +138,28 @@ function updateStateUI() {
     if (!STATE.state) return;
 
     // Check contradiction banner
-    const contradictions = STATE.pendingClarifications.filter(c => c.issue_type === 'contradiction');
-    if (contradictions.length > 0) {
+    if (STATE.pendingClarification && STATE.pendingClarification.issue_type === 'contradiction') {
         elContradictionBanner.classList.remove('hidden');
-        elContradictionMsg.textContent = contradictions.map(c => c.prompt).join(' | ');
+        elContradictionMsg.textContent = STATE.pendingClarification.prompt || 'A conflict was detected with previously confirmed information.';
     } else {
         elContradictionBanner.classList.add('hidden');
     }
 
     // Render Fields
     elFieldsGrid.innerHTML = '';
-    const fieldOrder = [
-        'full_name', 'jurisdiction', 'marital_status', 
-        'covers_worldwide_assets', 'has_children', 'children',
-        'primary_beneficiaries', 'executor_name', 'has_digital_assets', 'additional_wishes'
+    const items = [
+        { name: 'full_name', field: STATE.state.full_name },
+        { name: 'home_address', field: STATE.state.home_address },
+        { name: 'covers_worldwide_assets', field: STATE.state.covers_worldwide_assets },
+        { name: 'has_children', field: STATE.state.has_children },
+        { name: 'children', field: STATE.state.children },
+        { name: 'executor.name', field: STATE.state.executor?.name },
+        { name: 'executor.relationship', field: STATE.state.executor?.relationship },
+        { name: 'specific_gifts', field: STATE.state.specific_gifts },
+        { name: 'additional_wishes', field: STATE.state.additional_wishes }
     ];
 
-    fieldOrder.forEach(fieldName => {
-        const field = STATE.state[fieldName];
+    items.forEach(({ name, field }) => {
         if (!field) return;
 
         const card = document.createElement('div');
@@ -167,23 +170,24 @@ function updateStateUI() {
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'field-name';
-        nameSpan.textContent = fieldName;
+        nameSpan.textContent = name;
 
+        const statusStr = (field.status || 'unknown').toLowerCase();
         const badge = document.createElement('span');
-        badge.className = `badge badge-${field.status.toLowerCase().replace('_', '-')}`;
-        badge.textContent = field.status;
+        badge.className = `badge badge-${statusStr.replace('_', '-')}`;
+        badge.textContent = field.status || 'UNKNOWN';
 
         top.appendChild(nameSpan);
         top.appendChild(badge);
 
         const valSpan = document.createElement('div');
-        valSpan.className = 'field-value' + (field.value === null ? ' empty' : '');
+        valSpan.className = 'field-value' + (field.value === null || field.value === undefined ? ' empty' : '');
         
         let displayVal = field.value;
-        if (displayVal === null) {
+        if (displayVal === null || displayVal === undefined) {
             displayVal = '—';
         } else if (Array.isArray(displayVal)) {
-            displayVal = displayVal.length > 0 ? displayVal.join(', ') : '[] (None)';
+            displayVal = displayVal.length > 0 ? JSON.stringify(displayVal) : '[] (None)';
         } else if (typeof displayVal === 'boolean') {
             displayVal = displayVal ? 'Yes (true)' : 'No (false)';
         }
@@ -195,13 +199,13 @@ function updateStateUI() {
         elFieldsGrid.appendChild(card);
     });
 
-    // Render Audit History
-    const history = STATE.state.change_history || [];
+    // Render Changes
+    const changes = STATE.state.change_history || [];
     elChangeHistory.innerHTML = '';
-    if (history.length === 0) {
+    if (changes.length === 0) {
         elChangeHistory.innerHTML = '<span class="empty-state">No changes recorded yet.</span>';
     } else {
-        history.slice(-10).reverse().forEach(ch => {
+        changes.slice(-10).reverse().forEach(ch => {
             const item = document.createElement('div');
             item.className = 'change-item';
             item.innerHTML = `<strong>${ch.field}</strong>: <span>${JSON.stringify(ch.old_val)} → ${JSON.stringify(ch.new_val)}</span> <span class="badge badge-muted">${ch.kind}</span>`;
@@ -222,15 +226,14 @@ async function updateDocumentPreview() {
         const data = await res.json();
         
         STATE.document = data;
-        elDocContent.textContent = data.markdown_text || 'No document content available.';
+        elDocContent.textContent = data.text || 'No document content available.';
         
-        const pct = Math.round(data.completion_ratio * 100);
-        elDocCompletionBadge.textContent = `${pct}% Complete`;
-        if (pct >= 80) {
+        if (data.is_complete) {
+            elDocCompletionBadge.textContent = 'Complete (100%)';
             elDocCompletionBadge.className = 'badge badge-confirmed';
-        } else if (pct >= 40) {
-            elDocCompletionBadge.className = 'badge badge-unconfirmed';
         } else {
+            const missingCount = (data.missing_fields || []).length;
+            elDocCompletionBadge.textContent = `In Progress (${missingCount} missing)`;
             elDocCompletionBadge.className = 'badge badge-warning';
         }
     } catch (err) {
@@ -258,8 +261,8 @@ elBtnNewSession.addEventListener('click', () => {
 });
 
 elBtnCopyDoc.addEventListener('click', () => {
-    if (STATE.document && STATE.document.markdown_text) {
-        navigator.clipboard.writeText(STATE.document.markdown_text).then(() => {
+    if (STATE.document && STATE.document.text) {
+        navigator.clipboard.writeText(STATE.document.text).then(() => {
             const originalText = elBtnCopyDoc.innerHTML;
             elBtnCopyDoc.textContent = 'Copied!';
             setTimeout(() => { elBtnCopyDoc.innerHTML = originalText; }, 2000);
@@ -279,7 +282,6 @@ elManualEditForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const field = document.getElementById('edit-field-select').value;
     const rawVal = document.getElementById('edit-field-value').value;
-    const status = document.getElementById('edit-field-status').value;
 
     let parsedVal = rawVal;
     if (rawVal.toLowerCase() === 'true') parsedVal = true;
@@ -293,9 +295,9 @@ elManualEditForm.addEventListener('submit', async (e) => {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                field_name: field,
-                value: parsedVal,
-                status: status
+                field: field,
+                op: 'set',
+                value: parsedVal
             })
         });
 

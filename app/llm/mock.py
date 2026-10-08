@@ -30,12 +30,13 @@ class MockLLMClient:
         operations = []
         ambiguities = []
         contradictions = []
-        user_intent = "provide_info"
-
-        # Check for explicit correction intent
-        is_correction = bool(re.search(r"\b(actually|correction|change my|instead of|mistake|correct to)\b", user_message, re.I))
-        if is_correction:
-            user_intent = "correction"
+        # Check for correction intent
+        has_explicit_correction = bool(re.search(r"\b(correction|mistake|change my|instead of|correct to|modify|update my)\b", user_message, re.I))
+        has_soft_correction = bool(re.search(r"\b(actually|in fact)\b", user_message, re.I))
+        is_correction = has_explicit_correction or has_soft_correction
+        # For sensitive family/children boolean flips, require explicit correction keywords to bypass contradiction detector
+        is_children_correction = has_explicit_correction
+        user_intent = "correction" if is_correction else "provide_info"
 
         # 1. Full name detection
         name_match = re.search(
@@ -72,7 +73,7 @@ class MockLLMClient:
 
         # 2. Address detection
         addr_match = re.search(
-            r"(?:i live at|living at|address is|at)\s+([0-9]+[A-Za-z0-9\s,]+?(?:street|st|road|rd|avenue|ave|lane|london|manchester|uk|drive|dr|way)[A-Za-z0-9\s,]*?)(?=[,\s]+(?:and\b|my\b|i\b|with\b|$|\.))",
+            r"(?:i live at|living at|address is|at|moved,?\s*(?:my\s+)?address is)\s+([0-9]+[A-Za-z0-9\s,]+?(?:street|st|road|rd|avenue|ave|lane|london|manchester|uk|drive|dr|way)[A-Za-z0-9\s,]*?)(?=[,\s]+(?:and\b|my\b|i\b|with\b|$)|$|\.)",
             user_message,
             re.I,
         )
@@ -88,15 +89,15 @@ class MockLLMClient:
             })
         elif not any(op["field"] == "home_address" for op in operations) and state.get("home_address", {}).get("status") == "unknown":
             if re.search(r"\b\d+\s+[A-Za-z0-9\s,]+", user_message) and re.search(r"\b(street|st|road|rd|avenue|ave|lane|london|drive|dr|way|uk)\b", user_message, re.I):
+                clean_addr = re.sub(r"^(?:i live at|living at|my address is|address is|at)\s+", "", user_message.strip(), flags=re.I).rstrip(",.")
                 operations.append({
                     "op": "set",
                     "field": "home_address",
-                    "value": user_message.strip().rstrip(",."),
+                    "value": clean_addr,
                     "evidence": user_message.strip(),
                     "confidence": "high",
                     "is_correction": is_correction,
                 })
-
 
         # 3. Worldwide assets
         if re.search(
@@ -135,7 +136,7 @@ class MockLLMClient:
 
         # 4. Children
         no_kids_match = re.search(
-            r"(?:i\s+)?(?:don't|do not|haven't got|have no)\s+(?:any\s+)?(?:children|kids)|no\s+(?:children|kids)",
+            r"(?:i\s+)?(?:don't|do not|haven't got|have no)\s*(?:have\s+)?(?:any\s+)?(?:children|kids)|no\s+(?:children|kids)",
             user_message,
             re.I,
         )
@@ -146,7 +147,7 @@ class MockLLMClient:
                 "value": False,
                 "evidence": no_kids_match.group(0).strip(),
                 "confidence": "high",
-                "is_correction": False,
+                "is_correction": is_children_correction,
             })
         elif re.search(r"\b(a few kids|a few children|some kids)\b", user_message, re.I):
             ambiguities.append({
@@ -167,7 +168,7 @@ class MockLLMClient:
                     "value": True,
                     "evidence": kids_match.group(0).strip(),
                     "confidence": "high",
-                    "is_correction": False,
+                    "is_correction": is_children_correction,
                 })
                 names_str = kids_match.group(1)
                 if names_str:
@@ -183,7 +184,7 @@ class MockLLMClient:
                             "value": clean_names,
                             "evidence": names_str.strip(),
                             "confidence": "high",
-                            "is_correction": False,
+                            "is_correction": is_children_correction,
                         })
             elif state.get("has_children", {}).get("value") is True and state.get("children", {}).get("status") == "unknown":
                 clean_names = [n.strip() for n in re.split(r",|\band\b", user_message) if n.strip() and n.strip().isalpha()]
@@ -194,7 +195,7 @@ class MockLLMClient:
                         "value": clean_names,
                         "evidence": user_message,
                         "confidence": "high",
-                        "is_correction": is_correction,
+                        "is_correction": is_children_correction,
                     })
 
 
@@ -248,7 +249,7 @@ class MockLLMClient:
                 })
 
         # 6. Specific Gifts
-        if re.search(r"\b(no specific gifts|no gifts|nothing specific|don't have any specific gifts|no special gifts)\b", user_message, re.I):
+        if re.search(r"\b(no specific gifts|no gifts|nothing specific|(?:don't|do not) have any specific gifts|no special gifts)\b", user_message, re.I):
             operations.append({
                 "op": "set",
                 "field": "specific_gifts",
