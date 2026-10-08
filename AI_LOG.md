@@ -325,6 +325,29 @@ Give the LLM conversational flexibility to sound natural and polite, but surrend
 - 4 unit tests in `tests/unit/test_response_composer.py` verifying template completeness and fallback resilience.
 - All 69 tests pass.
 
+---
+
+## Log Entry 015 — F14 Deterministic Document Renderer
+
+### Prompt / Task
+Implement F14: Pure deterministic document renderer in `app/docgen/renderer.py`. Guarantee that generated documents are derived solely from confirmed structured state (no LLM, no reading chat history), always inject persistent legal disclaimers, format lists cleanly, and mark completion status accurately.
+
+### Output that was useful
+- `render_wishes_document` outputting `RenderedDocument(title, text, is_complete, missing_fields)`.
+- Mandatory disclaimers (`FICTIONAL PERSONAL WISHES DRAFT`, `NOT LEGAL ADVICE`, `DOES NOT CONSTITUTE LEGAL ADVICE`) baked into document text.
+
+### What I questioned
+- *Should document rendering use the LLM to write eloquent legal prose?*
+  **Answer**: No. PRD explicitly requires deterministic generation from structured confirmed state to prevent hallucinations, omissions, or embellishments.
+
+### Decision
+Render document text directly from structured state using deterministic formatting and explicit disclaimers.
+
+### Result
+- 4 unit tests in `tests/unit/test_docgen.py` verifying disclaimer injection, full completion, empty list representation ("None specified"), and contradiction containment.
+- All 73 tests in the test suite pass.
+
+
 
 
 
