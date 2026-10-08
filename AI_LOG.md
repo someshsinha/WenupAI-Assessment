@@ -121,6 +121,29 @@ Apply corrections immediately, record `kind="correction"` with `old_value` and `
 - 3 new unit tests in `tests/unit/test_corrections.py` covering scalar corrections, nested structure corrections, and session-level clarification resolution.
 - All 22 tests pass.
 
+---
+
+## Log Entry 006 — F05 Contradiction Handling
+
+### Prompt / Task
+Implement F05: Contradiction detection engine in `app/domain/contradictions.py`. Ensure unacknowledged conflicting statements against confirmed state (e.g. `has_children=False` vs mentioning a son/daughter) do not silently overwrite confirmed facts, but instead generate a `PendingClarification` and pause field progression.
+
+### Output that was useful
+- `detect_contradictions` inspecting proposed operations and user text against confirmed state.
+- Distinct handling where `is_correction=True` allows direct updates while `is_correction=False` on conflicting fields triggers clarification.
+
+### What I questioned
+- *Should a semantic mention like 'leave my car to my son' be caught if the LLM didn't emit a `children` operation?*
+  **Answer**: Yes. Cross-referencing child-related keywords when `has_children` is confirmed `False` prevents silent inconsistency in the final document.
+
+### Decision
+Enforce strict contradiction protection: keep confirmed state unchanged, create `PendingClarification`, and require explicit user resolution before changing the underlying fact.
+
+### Result
+- 4 unit tests created in `tests/unit/test_contradictions.py`.
+- All 26 tests in the test suite pass.
+
+
 
 
 
