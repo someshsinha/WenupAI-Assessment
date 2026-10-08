@@ -303,6 +303,29 @@ Keep the domain reducer and planner completely decoupled from I/O and LLM provid
 - 5 integration tests in `tests/unit/test_conversation_service.py` verifying multi-field intake, contradiction pause, corrections, malformed response handling, and provider error safety.
 - All 65 tests pass.
 
+---
+
+## Log Entry 014 — F13 Natural-Language Response Composer
+
+### Prompt / Task
+Implement F13: Dedicated `ResponseComposer` in `app/llm/composer.py`. Pass explicit `PlannerAction` instructions to the LLM for natural phrasing, while enforcing a deterministic fallback template matrix on any model errors, timeouts, or empty responses.
+
+### Output that was useful
+- `ResponseComposer` decoupling response phrasing from domain state control.
+- `DETERMINISTIC_ACTION_TEMPLATES` ensuring the assistant is never left speechless or stalled even when the LLM is unresponsive.
+
+### What I questioned
+- *Can the composer decide to ask for a different field?*
+  **Answer**: No. The composer prompt and contract strictly bound the LLM to phrase the planner's selected action without altering workflow or state.
+
+### Decision
+Give the LLM conversational flexibility to sound natural and polite, but surrender zero state control.
+
+### Result
+- 4 unit tests in `tests/unit/test_response_composer.py` verifying template completeness and fallback resilience.
+- All 69 tests pass.
+
+
 
 
 

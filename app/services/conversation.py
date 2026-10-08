@@ -6,7 +6,8 @@ from app.domain.reducer import apply_operations_to_session
 from app.domain.contradictions import detect_contradictions
 from app.domain.planner import plan_next_action, PlannerAction
 from app.llm.base import LLMClient
-from app.llm.prompts import build_extraction_prompt, build_compose_prompt
+from app.llm.prompts import build_extraction_prompt
+from app.llm.composer import ResponseComposer
 from app.llm.parsing import extract_with_repair
 from app.llm.grounding import filter_grounded_operations
 
@@ -16,6 +17,7 @@ class ConversationService:
 
     def __init__(self, llm_client: LLMClient):
         self.llm_client = llm_client
+        self.composer = ResponseComposer(llm_client=llm_client)
 
     async def process_user_turn(
         self,
@@ -107,23 +109,12 @@ class ConversationService:
         # 6. Query Deterministic Planner for next required action
         action, action_context = plan_next_action(new_session)
 
-        # 7. Compose Assistant Response
-        compose_payload = {
-            "prompt": build_compose_prompt(
-                action=action.value,
-                context=action_context,
-                recent_messages=[m.model_dump() for m in new_session.messages[-4:]],
-            ),
-            "action": action.value,
-            "context": action_context,
-        }
-
-        try:
-            assistant_response = await self.llm_client.compose(compose_payload)
-            if not assistant_response or not assistant_response.strip():
-                assistant_response = await self._get_fallback_response(action, action_context)
-        except Exception:
-            assistant_response = await self._get_fallback_response(action, action_context)
+        # 7. Compose Assistant Response via ResponseComposer
+        assistant_response = await self.composer.compose_response(
+            action=action,
+            action_context=action_context,
+            recent_messages=new_session.messages,
+        )
 
         # 8. Record assistant message and return
         new_session.messages.append(
@@ -133,19 +124,3 @@ class ConversationService:
 
         return new_session, assistant_response, new_changes
 
-    async def _get_fallback_response(self, action: PlannerAction, context: dict[str, Any]) -> str:
-        templates = {
-            PlannerAction.ASK_FULL_NAME: "To get started with your Personal Wishes Document, what is your full legal name?",
-            PlannerAction.ASK_HOME_ADDRESS: "Thank you. What is your current home address?",
-            PlannerAction.ASK_WORLDWIDE_ASSETS: "Does this document cover your assets worldwide, or only in a specific country?",
-            PlannerAction.ASK_HAS_CHILDREN: "Do you have any children?",
-            PlannerAction.ASK_CHILDREN_NAMES: "Could you please tell me the full names of your children?",
-            PlannerAction.ASK_EXECUTOR_NAME: "Who would you like to appoint as the executor of your personal wishes?",
-            PlannerAction.ASK_EXECUTOR_RELATIONSHIP: "What is the executor's relationship to you?",
-            PlannerAction.ASK_SPECIFIC_GIFTS: "Do you have any specific gifts or personal items you would like to leave to specific people?",
-            PlannerAction.ASK_ADDITIONAL_WISHES: "Do you have any additional wishes or instructions to record?",
-            PlannerAction.RESOLVE_CONTRADICTION: context.get("question", "Could you please clarify this conflicting information?"),
-            PlannerAction.CONFIRM_UNCONFIRMED: f"Just to confirm, you mentioned {context.get('field', 'this')}: {context.get('value')}. Is that correct?",
-            PlannerAction.COMPLETE: "Thank you! All required details have been gathered. You can review your completed draft document.",
-        }
-        return templates.get(action, "How can I assist you further?")
