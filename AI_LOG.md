@@ -76,4 +76,28 @@ Model all fields explicitly in `WishesState` and track mutations via immutable `
 - Domain models created with clear status transitions.
 - All 7 new unit tests in `tests/unit/test_domain_models.py` passed (10/10 total tests pass).
 
+---
+
+## Log Entry 004 — F03 State Reducer + Validation
+
+### Prompt / Task
+Implement F03: Single deterministic state reducer in `app/domain/reducer.py` with validation rules in `app/domain/validators.py`. Support `set`, `add`, `remove`, `clear`, `confirm` across all whitelisted fields with strict type checking and change auditing.
+
+### Output that was useful
+- Whitelist-driven validation (`ALLOWED_FIELDS`) rejecting unauthorized paths and illegal operations before state changes occur.
+- Immutable state copies (`model_copy(deep=True)`) preventing unintended mutations.
+- Batch atomic execution (`apply_operations`).
+
+### What I questioned
+- *How should item deletion from complex lists like `specific_gifts` work when a user only specifies the item name?*
+  **Answer**: Allow `remove` operation on `specific_gifts` to accept either full `Gift` dicts or string item names (e.g. `"Vintage Guitar"`).
+
+### Decision
+Support string identifiers for `remove` operations in list fields and ensure idempotent `set` operations do not create redundant change records.
+
+### Result
+- 9 unit tests created in `tests/unit/test_reducer.py` verifying field acceptance, unknown field rejection, type mismatches, and immutability.
+- All 19 tests in the test suite pass.
+
+
 
