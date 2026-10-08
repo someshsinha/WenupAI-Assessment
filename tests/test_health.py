@@ -23,8 +23,7 @@ async def test_root_endpoint():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
         assert response.status_code == 200
-        data = response.json()
-        assert "docs_url" in data
+        assert "text/html" in response.headers.get("content-type", "")
 
 
 @pytest.mark.asyncio

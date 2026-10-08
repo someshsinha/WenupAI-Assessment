@@ -462,6 +462,36 @@ Enforce bidirectional contradiction detection across boolean family fields and t
 - Added unit test in `tests/unit/test_contradictions.py` and two API regression tests in `tests/integration/test_api_endpoints.py`.
 - All 87 tests pass.
 
+---
+
+## Log Entry 021 — Three-Column Functional Frontend UI (F18–F22)
+
+### Prompt / Task
+Implement Feature F18 (Three-Column Chat UI):
+1. Column 1: Intake Dialogue (Chat Stream, dynamic message bubbles, input form, contradiction alert banner).
+2. Column 2: Structured State Inspector (status badges for CONFIRMED, UNCONFIRMED, UNKNOWN, NOT_APPLICABLE, audit change log, raw JSON view, direct manual state editor).
+3. Column 3: Live Document Preview (real-time generated markdown, mandatory legal disclaimer notice, completion ratio badge, copy button).
+4. Serve static frontend assets (`static/index.html`, `static/styles.css`, `static/app.js`) from FastAPI and mount static directory.
+
+### Output that was useful
+- Clean modern dark UI theme with typography from Google Fonts (`Plus Jakarta Sans`, `JetBrains Mono`).
+- Responsive 3-column layout built with Vanilla CSS and vanilla JS (no heavy frontend framework).
+- Integrated direct manual override form connected to `PATCH /api/sessions/{session_id}/state` for instantaneous state corrections.
+
+### What I questioned
+- *Should static files override or conflict with API endpoints?*
+  **Answer**: No. The `api_router` is included prior to static mounts, ensuring all `/api/*` endpoints resolve reliably.
+
+### Decision
+Mount static directory at `/static` and root `/` with `html=True` using `fastapi.staticfiles.StaticFiles`.
+
+### Result
+- Created `static/index.html`, `static/styles.css`, `static/app.js`.
+- Updated `app/main.py` to mount static directory.
+- Created `tests/integration/test_static_frontend.py` and updated `tests/test_health.py`.
+- All 90 tests pass.
+
+
 
 
 
