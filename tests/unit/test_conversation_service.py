@@ -26,6 +26,25 @@ async def test_conversation_service_multiple_fields_in_one_turn():
 
 
 @pytest.mark.asyncio
+async def test_conversation_service_worldwide_and_named_children_multi_field():
+    mock_llm = MockLLMClient()
+    service = ConversationService(llm_client=mock_llm)
+
+    session = Session(id="sess_regression_multi")
+    user_msg = "I have assets around the world and I have two children named Aarav and Anaya."
+
+    updated_session, assistant_msg, changes = await service.process_user_turn(session, user_msg)
+
+    assert updated_session.state.covers_worldwide_assets.value is True
+    assert updated_session.state.has_children.value is True
+    assert updated_session.state.children.value == ["Aarav", "Anaya"]
+    assert updated_session.state.additional_wishes.status == FieldStatus.UNKNOWN
+    assert updated_session.state.additional_wishes.value is None
+    assert len(changes) == 3
+
+
+
+@pytest.mark.asyncio
 async def test_conversation_service_contradiction_flow():
     mock_llm = MockLLMClient()
     service = ConversationService(llm_client=mock_llm)

@@ -54,6 +54,43 @@ async def test_api_session_lifecycle():
 
 
 @pytest.mark.asyncio
+async def test_api_multi_field_worldwide_and_children_regression():
+    """Regression test for multi-field message containing worldwide assets and spelled-out children count."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create session
+        res = await client.post("/api/sessions")
+        session_id = res.json()["session_id"]
+
+        # Send multi-field message
+        msg = "I have assets around the world and I have two children named Aarav and Anaya."
+        res = await client.post(f"/api/sessions/{session_id}/messages", json={"message": msg})
+        assert res.status_code == 200
+        data = res.json()
+
+        # Verify worldwide assets captured
+        assert data["state"]["covers_worldwide_assets"]["value"] is True
+        assert data["state"]["covers_worldwide_assets"]["status"] == "confirmed"
+
+        # Verify has_children and children list captured
+        assert data["state"]["has_children"]["value"] is True
+        assert data["state"]["has_children"]["status"] == "confirmed"
+        assert data["state"]["children"]["value"] == ["Aarav", "Anaya"]
+        assert data["state"]["children"]["status"] == "confirmed"
+
+        # Verify additional_wishes was NOT polluted
+        assert data["state"]["additional_wishes"]["status"] == "unknown"
+        assert data["state"]["additional_wishes"]["value"] is None
+
+        # Verify document contains children and worldwide coverage
+        doc_text = data["document"]["text"]
+        assert "WORLDWIDE" in doc_text
+        assert "Aarav" in doc_text
+        assert "Anaya" in doc_text
+
+
+
+@pytest.mark.asyncio
 async def test_api_unknown_session_returns_404():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

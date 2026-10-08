@@ -99,18 +99,29 @@ class MockLLMClient:
 
 
         # 3. Worldwide assets
-        if re.search(r"\b(worldwide|covers worldwide|global assets|all my assets worldwide)\b", user_message, re.I) or (
-            state.get("covers_worldwide_assets", {}).get("status") == "unknown" and re.search(r"\b(yes|worldwide|globally|yes it does)\b", user_message, re.I) and not re.search(r"\b(no|uk only|only uk)\b", user_message, re.I)
+        if re.search(
+            r"\b(worldwide|around the world|across the world|global|globally|all over the world|international|multiple countries|covers worldwide|global assets|all my assets worldwide)\b",
+            user_message,
+            re.I,
+        ) or (
+            state.get("covers_worldwide_assets", {}).get("status") == "unknown"
+            and re.search(r"\b(yes|worldwide|globally|yes it does)\b", user_message, re.I)
+            and not re.search(r"\b(no|uk only|only uk|local only)\b", user_message, re.I)
         ):
+            ev_match = re.search(
+                r"(?:assets\s+(?:around the world|across the world|worldwide|globally|in multiple countries)|(?:covers\s+)?worldwide|around the world|across the world|global|globally|all over the world|international)",
+                user_message,
+                re.I,
+            )
             operations.append({
                 "op": "set",
                 "field": "covers_worldwide_assets",
                 "value": True,
-                "evidence": user_message,
+                "evidence": ev_match.group(0) if ev_match else user_message,
                 "confidence": "high",
                 "is_correction": is_correction,
             })
-        elif re.search(r"\b(only uk|uk only|not worldwide|just uk|no worldwide)\b", user_message, re.I) or (
+        elif re.search(r"\b(only uk|uk only|not worldwide|just uk|no worldwide|local only)\b", user_message, re.I) or (
             state.get("covers_worldwide_assets", {}).get("status") == "unknown" and re.search(r"\b(no|nope|negative)\b", user_message, re.I)
         ):
             operations.append({
@@ -139,25 +150,33 @@ class MockLLMClient:
                 "issue": "Specific number or names of children not provided",
             })
         else:
-            kids_match = re.search(r"(?:have|got)\s+(\d+)\s+(?:children|kids)(?::\s*|\s+named\s+|\s+called\s+)?([A-Za-z\s,and]+)?", user_message, re.I)
+            kids_match = re.search(
+                r"(?:have|got)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)?\s*(?:children|kids|child|sons?|daughters?)(?::\s*|\s+named\s+|\s+called\s+)?([A-Za-z\s,and]+)?",
+                user_message,
+                re.I,
+            )
             if kids_match:
                 operations.append({
                     "op": "set",
                     "field": "has_children",
                     "value": True,
-                    "evidence": kids_match.group(0),
+                    "evidence": kids_match.group(0).strip(),
                     "confidence": "high",
                     "is_correction": is_correction,
                 })
-                names_str = kids_match.group(2)
+                names_str = kids_match.group(1)
                 if names_str:
-                    clean_names = [n.strip() for n in re.split(r",|\band\b", names_str) if n.strip()]
+                    clean_names = [
+                        n.strip()
+                        for n in re.split(r",|\band\b", names_str)
+                        if n.strip() and not re.search(r"\b(named|called|have|assets|executor|world|live|name|is)\b", n, re.I)
+                    ]
                     if clean_names:
                         operations.append({
                             "op": "set",
                             "field": "children",
                             "value": clean_names,
-                            "evidence": names_str,
+                            "evidence": names_str.strip(),
                             "confidence": "high",
                             "is_correction": is_correction,
                         })
@@ -222,7 +241,6 @@ class MockLLMClient:
                     "is_correction": is_correction,
                 })
 
-
         # 6. Specific Gifts
         if re.search(r"\b(no specific gifts|no gifts|nothing specific|don't have any specific gifts|no special gifts)\b", user_message, re.I):
             operations.append({
@@ -257,7 +275,7 @@ class MockLLMClient:
                 "confidence": "high",
                 "is_correction": is_correction,
             })
-        elif state.get("additional_wishes", {}).get("status") == "unknown" and len(operations) == 0 and len(user_message.split()) > 3:
+        elif re.search(r"\b(wish|wishes|funeral|cremat|burial|bury|scatter|ashes|ceremony|memorial|special instruction)\b", user_message, re.I):
             operations.append({
                 "op": "add",
                 "field": "additional_wishes",
@@ -266,6 +284,7 @@ class MockLLMClient:
                 "confidence": "high",
                 "is_correction": is_correction,
             })
+
 
         return json.dumps({
             "user_intent": user_intent,

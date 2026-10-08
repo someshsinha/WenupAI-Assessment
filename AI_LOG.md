@@ -413,6 +413,31 @@ Direct UI edits execute as pure state reducer operations with locked concurrency
 - 3 integration tests in `tests/integration/test_manual_correction.py` verifying direct edits, rejection of invalid fields/types (422), and immediate document synchronization.
 - All 82 tests in the test suite pass.
 
+---
+
+## Log Entry 019 — Multi-Field Extraction Fix & Regression Test (F12)
+
+### Prompt / Task
+Address bug discovered during manual testing: When the user sends a multi-field message like *"I have assets around the world and I have two children named Aarav and Anaya."*, the extractor was falling back to storing the entire sentence in `additional_wishes` instead of emitting independent operations for `covers_worldwide_assets`, `has_children`, and `children`.
+
+### Output that was useful
+- Broadened regex and pattern extraction for `covers_worldwide_assets` to match `"around the world"`, `"across the world"`, `"global"`, etc.
+- Extended `has_children` and `children` extraction to support spelled-out numbers (e.g. `"two children"`) and name lists.
+- Strictly gated `additional_wishes` extraction to actual wish/funeral/cremation/burial keywords so that unstructured text does not pollute the wishes list.
+
+### What I questioned
+- *Why did the extractor treat unrecognized multi-field statements as additional wishes?*
+  **Answer**: `mock.py` contained an overly permissive fallback that treated any long message with 0 initial matches as an additional wish. Replacing this with strict keyword and intent gating eliminates the issue.
+
+### Decision
+Ensure each recognized domain pattern produces an independent grounded operation atomically, and never use `additional_wishes` as a generic fallback.
+
+### Result
+- Added regression tests in `tests/integration/test_api_endpoints.py` and `tests/unit/test_conversation_service.py`.
+- Verified that `"I have assets around the world and I have two children named Aarav and Anaya."` correctly produces `covers_worldwide_assets: true`, `has_children: true`, `children: ["Aarav", "Anaya"]`, and leaves `additional_wishes` untouched.
+- All 84 tests pass.
+
+
 
 
 
