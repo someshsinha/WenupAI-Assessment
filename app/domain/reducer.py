@@ -138,3 +138,29 @@ def apply_operations(
             changes.append(change)
 
     return current_state, changes
+
+
+def apply_operations_to_session(
+    session: "Session",
+    operations: list[dict[str, Any]],
+    turn: int = 1,
+) -> "Session":
+    """Applies operations to a session, records audit changes, and clears resolved pending clarifications."""
+    from app.domain.models import Session
+
+    new_session = session.model_copy(deep=True)
+    new_state, changes = apply_operations(new_session.state, operations, turn=turn)
+
+    new_session.state = new_state
+    new_session.changes.extend(changes)
+
+    # If an explicit correction or update was applied to the field under pending clarification, clear it
+    if new_session.pending_clarification:
+        clarified_field = new_session.pending_clarification.field
+        for c in changes:
+            if c.field == clarified_field:
+                new_session.pending_clarification = None
+                break
+
+    return new_session
+

@@ -99,5 +99,28 @@ Support string identifiers for `remove` operations in list fields and ensure ide
 - 9 unit tests created in `tests/unit/test_reducer.py` verifying field acceptance, unknown field rejection, type mismatches, and immutability.
 - All 19 tests in the test suite pass.
 
+---
+
+## Log Entry 005 — F04 Explicit Correction Semantics
+
+### Prompt / Task
+Implement F04: Handle explicit user corrections (e.g., "Actually, Bob is my executor, not James"), replace confirmed values directly without getting stuck in clarification loops, record audit events with `kind="correction"`, and clear active pending clarifications.
+
+### Output that was useful
+- Clean separation between normal `set` operations and `correction` mutations.
+- `apply_operations_to_session` helper that clears pending clarification once the referenced field is updated or corrected.
+
+### What I questioned
+- *Should an explicit correction require confirmation before being accepted?*
+  **Answer**: No. An explicit correction from the user is direct intent. Requiring confirmation would create an unnecessary clarification loop. It should immediately replace the value and record the old vs new values in the change log.
+
+### Decision
+Apply corrections immediately, record `kind="correction"` with `old_value` and `new_value`, and clear pending clarifications for that field.
+
+### Result
+- 3 new unit tests in `tests/unit/test_corrections.py` covering scalar corrections, nested structure corrections, and session-level clarification resolution.
+- All 22 tests pass.
+
+
 
 
