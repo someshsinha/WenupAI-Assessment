@@ -233,6 +233,32 @@ Treat LLM output as untrusted external input and enforce strict schema parsing w
 - 4 unit tests in `tests/unit/test_extraction_schemas.py` verifying valid schemas and rejection of malformed operations.
 - All 48 tests pass.
 
+---
+
+## Log Entry 011 — F10 Evidence Grounding Validation
+
+### Prompt / Task
+Implement F10: Robust evidence grounding validator in `app/llm/grounding.py`. Verify that all extracted operations reference genuine evidence present in the current user turn, normalize whitespace/case/punctuation, and reject/quarantine fabricated or stale evidence.
+
+### Output that was useful
+- `normalize_text` for punctuation and whitespace collapse.
+- `is_evidence_grounded` combining exact substring match and token overlap ratio.
+- `filter_grounded_operations` to quarantine ungrounded operations.
+
+### What I questioned
+- *What if the user says 'Jane Smith.' and the model extracts 'Jane Smith'?*
+  **Answer**: Punctuation-agnostic normalization ensures valid responses aren't rejected due to trailing periods, commas, or extra whitespace.
+- *What if the model extracts evidence from a previous conversational turn?*
+  **Answer**: Grounding strictly validates against the *current* user turn, preventing old statements from re-triggering mutations without current intent.
+
+### Decision
+Quarantine any operation whose evidence fails grounding against the current user message, leaving state untouched.
+
+### Result
+- 6 unit tests in `tests/unit/test_grounding.py` covering exact matches, punctuation/whitespace normalization, token overlap, and rejection of fabricated/stale evidence.
+- All 54 tests pass.
+
+
 
 
 
