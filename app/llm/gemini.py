@@ -9,9 +9,14 @@ from app.llm.base import (
 
 
 class GeminiClient:
-    """LLM client wrapping Google GenAI SDK with structured output and error mapping."""
+    """LLM client wrapping Google GenAI SDK with structured output, temperature tuning, and error mapping."""
 
-    def __init__(self, api_key: str | None = None, model_name: str = "gemini-2.5-flash", timeout_seconds: float = 15.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str = "gemini-2.5-flash",
+        timeout_seconds: float = 20.0,
+    ):
         self.api_key = api_key
         self.model_name = model_name
         self.timeout_seconds = timeout_seconds
@@ -19,7 +24,9 @@ class GeminiClient:
 
     def _get_client(self):
         if not self.api_key:
-            raise LLMNotConfiguredError("Gemini API key is not configured. Set GEMINI_API_KEY in environment.")
+            raise LLMNotConfiguredError(
+                "Gemini API key is not configured. Set GEMINI_API_KEY in your .env file."
+            )
 
         if self._client is None:
             try:
@@ -39,19 +46,23 @@ class GeminiClient:
         prompt = payload.get("prompt", "")
 
         try:
-            # Run in asyncio executor with timeout
+            from google.genai import types
             loop = asyncio.get_running_loop()
 
             def _call_gemini():
-                config = {}
+                config_args: dict[str, Any] = {
+                    "temperature": 0.0,  # Zero temperature for deterministic extraction
+                }
                 if schema:
-                    config["response_mime_type"] = "application/json"
-                    config["response_schema"] = schema
+                    config_args["response_mime_type"] = "application/json"
+                    config_args["response_schema"] = schema
+
+                config = types.GenerateContentConfig(**config_args)
 
                 response = client.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
-                    config=config if config else None,
+                    config=config,
                 )
                 return response.text
 
@@ -67,8 +78,10 @@ class GeminiClient:
             raise
         except Exception as e:
             err_str = str(e).lower()
-            if "429" in err_str or "quota" in err_str or "rate limit" in err_str:
+            if "429" in err_str or "quota" in err_str or "rate limit" in err_str or "resource_exhausted" in err_str:
                 raise LLMRateLimitError(f"Gemini rate limit exceeded: {e}") from e
+            if "api_key" in err_str or "authentication" in err_str or "unauthenticated" in err_str:
+                raise LLMNotConfiguredError(f"Invalid or unauthorized Gemini API key: {e}") from e
             raise LLMProviderError(f"Gemini provider error: {e}") from e
 
     async def compose(self, payload: dict[str, Any]) -> str:
@@ -76,12 +89,17 @@ class GeminiClient:
         prompt = payload.get("prompt", "")
 
         try:
+            from google.genai import types
             loop = asyncio.get_running_loop()
 
             def _call_gemini():
+                config = types.GenerateContentConfig(
+                    temperature=0.7,
+                )
                 response = client.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
+                    config=config,
                 )
                 return response.text
 
@@ -96,4 +114,7 @@ class GeminiClient:
         except LLMNotConfiguredError:
             raise
         except Exception as e:
+            err_str = str(e).lower()
+            if "429" in err_str or "quota" in err_str or "rate limit" in err_str:
+                raise LLMRateLimitError(f"Gemini rate limit exceeded: {e}") from e
             raise LLMProviderError(f"Gemini provider error: {e}") from e

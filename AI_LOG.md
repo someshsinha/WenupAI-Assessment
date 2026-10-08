@@ -603,6 +603,28 @@ Treat active `pending_clarification` responses as intent resolutions and allow s
 - Created `tests/integration/test_manual_session_regressions.py` covering all 3 scenarios.
 - All 101 tests pass across unit, integration, and scenario suites.
 
+---
+
+## Log Entry 026 — Google Gemini API Configuration & Readiness
+
+### Prompt / Task
+Prepare files and environment for live Google Gemini API integration: create `.env` with `LLM_PROVIDER=gemini` and `GEMINI_API_KEY=` placeholder, refine `GeminiClient` with temperature controls (0.0 for deterministic JSON extraction, 0.7 for conversational composition) and robust error handling using the official `google-genai` SDK.
+
+### Output that was useful
+- Pre-configured `.env` file with `LLM_PROVIDER=gemini`, ready for immediate key insertion.
+- Updated `GeminiClient` in `app/llm/gemini.py` wrapping `google.genai.Client` with `types.GenerateContentConfig` for structured schema enforcement and temperature control.
+- Clear error handling for 429 rate limits, invalid API keys, and timeouts.
+
+### What I questioned
+- *Should we leave LLM_PROVIDER as mock if no key is entered?*
+  **Answer**: Yes, the dependency provider in `app/api/routes.py` gracefully falls back to `MockLLMClient` if `GEMINI_API_KEY` is empty, avoiding runtime startup crashes while making switching instantaneous once the key is pasted.
+
+### Result
+- `.env` file created and ready for user API key.
+- `app/llm/gemini.py` verified with `google.genai` SDK.
+- 101/101 test suite passing.
+
+
 
 
 
