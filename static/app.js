@@ -26,40 +26,10 @@ const elRawStateJson = document.getElementById('raw-state-json');
 const elDocContent = document.getElementById('doc-content');
 const elDocCompletionBadge = document.getElementById('doc-completion-badge');
 const elBtnCopyDoc = document.getElementById('btn-copy-doc');
-const elBtnDownloadPdf = document.getElementById('btn-download-pdf');
 const elBtnManualEditToggle = document.getElementById('btn-manual-edit-toggle');
 const elManualEditPanel = document.getElementById('manual-edit-panel');
 const elManualEditForm = document.getElementById('manual-edit-form');
 const elBtnCancelEdit = document.getElementById('btn-cancel-edit');
-const elEditFieldSelect = document.getElementById('edit-field-select');
-const elEditFieldValue = document.getElementById('edit-field-value');
-const elQuickRepliesBar = document.getElementById('quick-replies-bar');
-const elBtnViewDocTop = document.getElementById('btn-view-doc-top');
-
-// SVG Icons for fields matching the design
-const ICONS = {
-    user: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-    home: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
-    globe: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
-    users: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
-    child: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 1 0-16 0"></path></svg>`,
-    executor: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>`,
-    link: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
-    gift: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>`,
-    doc: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-};
-
-const FIELD_SPECS = [
-    { key: 'full_name', label: 'Full Legal Name', icon: ICONS.user },
-    { key: 'home_address', label: 'Home Address', icon: ICONS.home },
-    { key: 'covers_worldwide_assets', label: 'Covers Worldwide Assets', icon: ICONS.globe },
-    { key: 'has_children', label: 'Has Children', icon: ICONS.users },
-    { key: 'children', label: 'Children', icon: ICONS.child },
-    { key: 'executor.name', label: 'Executor Name', icon: ICONS.executor },
-    { key: 'executor.relationship', label: 'Executor Relationship', icon: ICONS.link },
-    { key: 'specific_gifts', label: 'Specific Gifts & Bequests', icon: ICONS.gift },
-    { key: 'additional_wishes', label: 'Additional Wishes', icon: ICONS.doc }
-];
 
 // Initialize Session
 async function initSession() {
@@ -74,17 +44,18 @@ async function initSession() {
         elSessionId.textContent = STATE.sessionId.slice(0, 8) + '...';
         elSessionId.title = STATE.sessionId;
 
+        // Clear UI
         elChatMessages.innerHTML = '';
         appendMessage('assistant', 'Hello! I am your personal intake assistant for recording your personal wishes. To get started, what is your full legal name?');
         
         await syncSession();
     } catch (err) {
         console.error('Session initialization error:', err);
-        elSessionId.textContent = 'Error';
+        elSessionId.textContent = 'Error creating session';
     }
 }
 
-// Fetch current session details
+// Fetch full session details
 async function syncSession() {
     if (!STATE.sessionId) return;
     try {
@@ -110,7 +81,6 @@ async function sendMessage(content) {
     appendMessage('user', content);
     elChatInput.value = '';
     elBtnSend.disabled = true;
-    elQuickRepliesBar.innerHTML = '';
 
     try {
         const res = await fetch(`/api/sessions/${STATE.sessionId}/messages`, {
@@ -133,7 +103,6 @@ async function sendMessage(content) {
         
         updateStateUI();
         await updateDocumentPreview();
-        updateQuickReplies(data.assistant_message);
     } catch (err) {
         console.error('Send error:', err);
         appendMessage('assistant', `⚠️ Error: ${err.message}`);
@@ -143,68 +112,23 @@ async function sendMessage(content) {
     }
 }
 
-// Append Chat Message Row
+// Append chat message
 function appendMessage(role, text) {
-    const row = document.createElement('div');
-    row.className = `chat-bubble-row ${role}`;
-
-    const avatar = document.createElement('div');
-    avatar.className = `bubble-avatar ${role}`;
-    avatar.innerHTML = role === 'user' 
-        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
-        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><polygon points="12 6 12 12 16 14"/></svg>`;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'bubble-content-box';
-
     const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble';
-    bubble.textContent = text;
+    bubble.className = `chat-bubble ${role}`;
+    
+    const content = document.createElement('div');
+    content.className = 'chat-bubble-content';
+    content.textContent = text;
+    bubble.appendChild(content);
 
-    const time = document.createElement('div');
-    time.className = 'bubble-timestamp';
-    const now = new Date();
-    time.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const meta = document.createElement('div');
+    meta.className = 'chat-bubble-meta';
+    meta.textContent = role === 'user' ? 'You' : 'Assistant';
+    bubble.appendChild(meta);
 
-    wrap.appendChild(bubble);
-    wrap.appendChild(time);
-
-    row.appendChild(avatar);
-    row.appendChild(wrap);
-
-    elChatMessages.appendChild(row);
+    elChatMessages.appendChild(bubble);
     elChatMessages.scrollTop = elChatMessages.scrollHeight;
-}
-
-// Quick reply buttons
-function updateQuickReplies(msg) {
-    const lower = (msg || '').toLowerCase();
-    if (lower.includes('children') || lower.includes('any children')) {
-        renderQuickReplies(["No, I don't have any children", "Yes, I have children", "Prefer not to say"]);
-    } else if (lower.includes('outside') || lower.includes('worldwide') || lower.includes('country')) {
-        renderQuickReplies(["Yes, I hold assets outside my country", "No, domestic only", "Yes"]);
-    } else if (lower.includes('executor') || lower.includes('appoint')) {
-        renderQuickReplies(["My wife", "My spouse", "My eldest child", "A trusted friend"]);
-    } else {
-        elQuickRepliesBar.innerHTML = '';
-    }
-}
-
-function renderQuickReplies(chips) {
-    elQuickRepliesBar.innerHTML = '';
-    if (!chips || chips.length === 0) return;
-
-    chips.forEach(text => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'quick-chip';
-        btn.textContent = text;
-        btn.addEventListener('click', () => {
-            elChatInput.value = text;
-            sendMessage(text);
-        });
-        elQuickRepliesBar.appendChild(btn);
-    });
 }
 
 // Update State Column UI
@@ -223,106 +147,68 @@ function updateStateUI() {
 
     // Render Fields
     elFieldsGrid.innerHTML = '';
-    const fieldMap = {
-        'full_name': STATE.state.full_name,
-        'home_address': STATE.state.home_address,
-        'covers_worldwide_assets': STATE.state.covers_worldwide_assets,
-        'has_children': STATE.state.has_children,
-        'children': STATE.state.children,
-        'executor.name': STATE.state.executor?.name,
-        'executor.relationship': STATE.state.executor?.relationship,
-        'specific_gifts': STATE.state.specific_gifts,
-        'additional_wishes': STATE.state.additional_wishes
-    };
+    const items = [
+        { name: 'full_name', field: STATE.state.full_name },
+        { name: 'home_address', field: STATE.state.home_address },
+        { name: 'covers_worldwide_assets', field: STATE.state.covers_worldwide_assets },
+        { name: 'has_children', field: STATE.state.has_children },
+        { name: 'children', field: STATE.state.children },
+        { name: 'executor.name', field: STATE.state.executor?.name },
+        { name: 'executor.relationship', field: STATE.state.executor?.relationship },
+        { name: 'specific_gifts', field: STATE.state.specific_gifts },
+        { name: 'additional_wishes', field: STATE.state.additional_wishes }
+    ];
 
-    FIELD_SPECS.forEach(({ key, label, icon }) => {
-        const field = fieldMap[key];
+    items.forEach(({ name, field }) => {
         if (!field) return;
 
-        const row = document.createElement('div');
-        row.className = 'field-item-row';
-        row.title = `Click to edit ${label}`;
+        const card = document.createElement('div');
+        card.className = 'field-card';
 
-        row.addEventListener('click', () => {
-            elManualEditPanel.classList.remove('hidden');
-            elEditFieldSelect.value = key;
-            elEditFieldValue.value = typeof field.value === 'object' ? JSON.stringify(field.value) : (field.value ?? '');
-            elEditFieldValue.focus();
-        });
-
-        const left = document.createElement('div');
-        left.className = 'field-left-group';
-
-        const iconBox = document.createElement('div');
-        iconBox.className = 'field-icon-wrap';
-        
-        // Colorize icon if confirmed vs unknown
-        const statusRaw = (field.status || 'unknown').toLowerCase().replace('_', '-');
-        if (statusRaw === 'confirmed') {
-            iconBox.style.color = '#10b981';
-        } else if (statusRaw === 'needs-input' || statusRaw === 'unconfirmed') {
-            iconBox.style.color = '#f59e0b';
-        } else {
-            iconBox.style.color = '#64748b';
-        }
-        iconBox.innerHTML = icon;
-
-        const texts = document.createElement('div');
-        texts.className = 'field-text-group';
+        const top = document.createElement('div');
+        top.className = 'field-card-top';
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'field-label-text';
-        nameSpan.textContent = label;
+        nameSpan.className = 'field-name';
+        nameSpan.textContent = name;
 
-        const valSpan = document.createElement('span');
-        valSpan.className = 'field-value-text' + (field.value === null || field.value === undefined ? ' empty' : '');
+        const statusStr = (field.status || 'unknown').toLowerCase();
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${statusStr.replace('_', '-')}`;
+        badge.textContent = field.status || 'UNKNOWN';
 
+        top.appendChild(nameSpan);
+        top.appendChild(badge);
+
+        const valSpan = document.createElement('div');
+        valSpan.className = 'field-value' + (field.value === null || field.value === undefined ? ' empty' : '');
+        
         let displayVal = field.value;
         if (displayVal === null || displayVal === undefined) {
             displayVal = '—';
         } else if (Array.isArray(displayVal)) {
-            displayVal = displayVal.length > 0 ? displayVal.join(', ') : 'None';
+            displayVal = displayVal.length > 0 ? JSON.stringify(displayVal) : '[] (None)';
         } else if (typeof displayVal === 'boolean') {
-            displayVal = displayVal ? 'Yes' : 'No';
+            displayVal = displayVal ? 'Yes (true)' : 'No (false)';
         }
 
         valSpan.textContent = displayVal;
 
-        texts.appendChild(nameSpan);
-        texts.appendChild(valSpan);
-        left.appendChild(iconBox);
-        left.appendChild(texts);
-
-        const right = document.createElement('div');
-        right.className = 'field-right-group';
-
-        const badge = document.createElement('span');
-        badge.className = `status-pill ${statusRaw}`;
-        badge.textContent = (field.status || 'UNKNOWN').replace('_', ' ');
-
-        const chevron = document.createElement('span');
-        chevron.className = 'chevron-arrow';
-        chevron.textContent = '›';
-
-        right.appendChild(badge);
-        right.appendChild(chevron);
-
-        row.appendChild(left);
-        row.appendChild(right);
-        elFieldsGrid.appendChild(row);
+        card.appendChild(top);
+        card.appendChild(valSpan);
+        elFieldsGrid.appendChild(card);
     });
 
     // Render Changes
     const changes = STATE.state.change_history || [];
     elChangeHistory.innerHTML = '';
-
     if (changes.length === 0) {
-        elChangeHistory.innerHTML = '<span class="empty-hint">No changes recorded yet.</span>';
+        elChangeHistory.innerHTML = '<span class="empty-state">No changes recorded yet.</span>';
     } else {
         changes.slice(-10).reverse().forEach(ch => {
             const item = document.createElement('div');
-            item.className = 'audit-entry-item';
-            item.innerHTML = `<strong>${ch.field}</strong>: <span>${JSON.stringify(ch.old_val)} → ${JSON.stringify(ch.new_val)}</span> (${ch.kind})`;
+            item.className = 'change-item';
+            item.innerHTML = `<strong>${ch.field}</strong>: <span>${JSON.stringify(ch.old_val)} → ${JSON.stringify(ch.new_val)}</span> <span class="badge badge-muted">${ch.kind}</span>`;
             elChangeHistory.appendChild(item);
         });
     }
@@ -340,17 +226,15 @@ async function updateDocumentPreview() {
         const data = await res.json();
         
         STATE.document = data;
-        elDocContent.textContent = data.text || 'No document content generated yet.';
+        elDocContent.textContent = data.text || 'No document content available.';
         
         if (data.is_complete) {
-            elDocCompletionBadge.textContent = '100% Complete';
-            elDocCompletionBadge.className = 'pill-badge pill-draft complete';
+            elDocCompletionBadge.textContent = 'Complete (100%)';
+            elDocCompletionBadge.className = 'badge badge-confirmed';
         } else {
             const missingCount = (data.missing_fields || []).length;
-            const completedCount = 7 - missingCount;
-            const pct = Math.max(0, Math.min(100, Math.round((completedCount / 7) * 100)));
-            elDocCompletionBadge.textContent = `${pct}% Complete (${missingCount} missing)`;
-            elDocCompletionBadge.className = 'pill-badge pill-draft';
+            elDocCompletionBadge.textContent = `In Progress (${missingCount} missing)`;
+            elDocCompletionBadge.className = 'badge badge-warning';
         }
     } catch (err) {
         console.error('Document preview error:', err);
@@ -371,7 +255,7 @@ elChatInput.addEventListener('keydown', (e) => {
 });
 
 elBtnNewSession.addEventListener('click', () => {
-    if (confirm('Start a new intake session? Current progress will be reset.')) {
+    if (confirm('Start a new intake session? Current progress in this tab will be reset.')) {
         initSession();
     }
 });
@@ -379,33 +263,15 @@ elBtnNewSession.addEventListener('click', () => {
 elBtnCopyDoc.addEventListener('click', () => {
     if (STATE.document && STATE.document.text) {
         navigator.clipboard.writeText(STATE.document.text).then(() => {
-            const originalHTML = elBtnCopyDoc.innerHTML;
+            const originalText = elBtnCopyDoc.innerHTML;
             elBtnCopyDoc.textContent = 'Copied!';
-            setTimeout(() => { elBtnCopyDoc.innerHTML = originalHTML; }, 2000);
+            setTimeout(() => { elBtnCopyDoc.innerHTML = originalText; }, 2000);
         });
     }
 });
 
-if (elBtnDownloadPdf) {
-    elBtnDownloadPdf.addEventListener('click', () => {
-        window.print();
-    });
-}
-
-if (elBtnViewDocTop) {
-    elBtnViewDocTop.addEventListener('click', () => {
-        const docCol = document.getElementById('document-section');
-        if (docCol) {
-            docCol.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
-}
-
 elBtnManualEditToggle.addEventListener('click', () => {
     elManualEditPanel.classList.toggle('hidden');
-    if (!elManualEditPanel.classList.contains('hidden')) {
-        elEditFieldValue.focus();
-    }
 });
 
 elBtnCancelEdit.addEventListener('click', () => {
@@ -414,8 +280,8 @@ elBtnCancelEdit.addEventListener('click', () => {
 
 elManualEditForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const field = elEditFieldSelect.value;
-    const rawVal = elEditFieldValue.value;
+    const field = document.getElementById('edit-field-select').value;
+    const rawVal = document.getElementById('edit-field-value').value;
 
     let parsedVal = rawVal;
     if (rawVal.toLowerCase() === 'true') parsedVal = true;
@@ -449,14 +315,6 @@ elManualEditForm.addEventListener('submit', async (e) => {
     } catch (err) {
         alert(`Error applying edit: ${err.message}`);
     }
-});
-
-// Document navigation links click handler
-document.querySelectorAll('.doc-nav-item').forEach(link => {
-    link.addEventListener('click', () => {
-        document.querySelectorAll('.doc-nav-item').forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-    });
 });
 
 // Boot
