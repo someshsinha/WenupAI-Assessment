@@ -656,6 +656,23 @@ Fix conversational loop at the end of the intake where answers like "nothing", "
 - Added regression test `test_regression_additional_wishes_concise_negative_answers_complete_session` in `tests/integration/test_manual_session_regressions.py`.
 - 102/102 test suite passing.
 
+---
+
+## Log Entry 029 — History Context & Contextual Affirmation/Denial Handling
+
+### Prompt / Task
+Fix conversational loop where single-word affirmative answers (e.g., "yes", "yes I do own", "yeah") to questions about worldwide assets or children were classified as generic confirmation without operations because the extraction prompt lacked the recent question history context.
+
+### Output that was useful
+- Injected `RECENT CONVERSATION HISTORY` (recent turns) directly into `build_extraction_prompt` in `app/llm/prompts.py`.
+- Added explicit contextual rules for mapping affirmative/negative answers ("yes", "no", "yeah", "nope", "I do", "only domestic") to `covers_worldwide_assets`, `has_children`, `specific_gifts`, and `additional_wishes` based on the active question.
+- Made `ExtractionAmbiguity` and `ExtractionContradiction` in `app/llm/schemas.py` resilient with defaults to prevent Pydantic validation schema failures.
+
+### Result
+- Live Gemini tests verified: `"yes"`, `"yes I do own"`, `"no"`, `"yeah"`, `"nope"` accurately extract to `covers_worldwide_assets` with high confidence.
+- 102/102 tests passing.
+
+
 
 
 
