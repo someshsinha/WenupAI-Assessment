@@ -22,7 +22,6 @@ const elContradictionBanner = document.getElementById('contradiction-banner');
 const elContradictionMsg = document.getElementById('contradiction-message');
 const elFieldsGrid = document.getElementById('fields-grid');
 const elChangeHistory = document.getElementById('change-history');
-const elAuditCount = document.getElementById('audit-count');
 const elRawStateJson = document.getElementById('raw-state-json');
 const elDocContent = document.getElementById('doc-content');
 const elDocCompletionBadge = document.getElementById('doc-completion-badge');
@@ -35,6 +34,7 @@ const elBtnCancelEdit = document.getElementById('btn-cancel-edit');
 const elEditFieldSelect = document.getElementById('edit-field-select');
 const elEditFieldValue = document.getElementById('edit-field-value');
 const elQuickRepliesBar = document.getElementById('quick-replies-bar');
+const elBtnViewDocTop = document.getElementById('btn-view-doc-top');
 
 // SVG Icons for fields matching the design
 const ICONS = {
@@ -78,7 +78,6 @@ async function initSession() {
         appendMessage('assistant', 'Hello! I am your personal intake assistant for recording your personal wishes. To get started, what is your full legal name?');
         
         await syncSession();
-        renderQuickReplies(["Amar Akbar Anthony", "Somesh Sinha", "John Doe"]);
     } catch (err) {
         console.error('Session initialization error:', err);
         elSessionId.textContent = 'Error';
@@ -147,23 +146,23 @@ async function sendMessage(content) {
 // Append Chat Message Row
 function appendMessage(role, text) {
     const row = document.createElement('div');
-    row.className = `chat-row ${role}`;
+    row.className = `chat-bubble-row ${role}`;
 
     const avatar = document.createElement('div');
-    avatar.className = `avatar-icon-box ${role}`;
+    avatar.className = `bubble-avatar ${role}`;
     avatar.innerHTML = role === 'user' 
         ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
         : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><polygon points="12 6 12 12 16 14"/></svg>`;
 
     const wrap = document.createElement('div');
-    wrap.className = 'chat-bubble-wrap';
+    wrap.className = 'bubble-content-box';
 
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble';
     bubble.textContent = text;
 
     const time = document.createElement('div');
-    time.className = 'chat-bubble-time';
+    time.className = 'bubble-timestamp';
     const now = new Date();
     time.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -182,12 +181,10 @@ function updateQuickReplies(msg) {
     const lower = (msg || '').toLowerCase();
     if (lower.includes('children') || lower.includes('any children')) {
         renderQuickReplies(["No, I don't have any children", "Yes, I have children", "Prefer not to say"]);
-    } else if (lower.includes('outside') || lower.includes('worldwide') || lower.includes('assets')) {
-        renderQuickReplies(["Yes, I have assets worldwide", "No, domestic only", "Yes"]);
+    } else if (lower.includes('outside') || lower.includes('worldwide') || lower.includes('country')) {
+        renderQuickReplies(["Yes, I hold assets outside my country", "No, domestic only", "Yes"]);
     } else if (lower.includes('executor') || lower.includes('appoint')) {
-        renderQuickReplies(["My spouse", "My eldest child", "A trusted friend"]);
-    } else if (lower.includes('address')) {
-        renderQuickReplies(["123 Main Street, Apt 4B, New York, NY 10001", "I2IT College, Hinjewadi, Pune"]);
+        renderQuickReplies(["My wife", "My spouse", "My eldest child", "A trusted friend"]);
     } else {
         elQuickRepliesBar.innerHTML = '';
     }
@@ -200,7 +197,7 @@ function renderQuickReplies(chips) {
     chips.forEach(text => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'quick-reply-btn';
+        btn.className = 'quick-chip';
         btn.textContent = text;
         btn.addEventListener('click', () => {
             elChatInput.value = text;
@@ -219,7 +216,7 @@ function updateStateUI() {
     // Check contradiction banner
     if (STATE.pendingClarification && STATE.pendingClarification.issue_type === 'contradiction') {
         elContradictionBanner.classList.remove('hidden');
-        elContradictionMsg.textContent = STATE.pendingClarification.prompt || 'A conflict was found with previously confirmed information.';
+        elContradictionMsg.textContent = STATE.pendingClarification.prompt || 'A conflict was detected with previously confirmed information.';
     } else {
         elContradictionBanner.classList.add('hidden');
     }
@@ -243,7 +240,7 @@ function updateStateUI() {
         if (!field) return;
 
         const row = document.createElement('div');
-        row.className = 'field-row-item';
+        row.className = 'field-item-row';
         row.title = `Click to edit ${label}`;
 
         row.addEventListener('click', () => {
@@ -254,21 +251,31 @@ function updateStateUI() {
         });
 
         const left = document.createElement('div');
-        left.className = 'field-left';
+        left.className = 'field-left-group';
 
         const iconBox = document.createElement('div');
-        iconBox.className = 'field-icon-box';
+        iconBox.className = 'field-icon-wrap';
+        
+        // Colorize icon if confirmed vs unknown
+        const statusRaw = (field.status || 'unknown').toLowerCase().replace('_', '-');
+        if (statusRaw === 'confirmed') {
+            iconBox.style.color = '#10b981';
+        } else if (statusRaw === 'needs-input' || statusRaw === 'unconfirmed') {
+            iconBox.style.color = '#f59e0b';
+        } else {
+            iconBox.style.color = '#64748b';
+        }
         iconBox.innerHTML = icon;
 
         const texts = document.createElement('div');
-        texts.className = 'field-texts';
+        texts.className = 'field-text-group';
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'field-label';
+        nameSpan.className = 'field-label-text';
         nameSpan.textContent = label;
 
         const valSpan = document.createElement('span');
-        valSpan.className = 'field-val-text' + (field.value === null || field.value === undefined ? ' empty' : '');
+        valSpan.className = 'field-value-text' + (field.value === null || field.value === undefined ? ' empty' : '');
 
         let displayVal = field.value;
         if (displayVal === null || displayVal === undefined) {
@@ -287,11 +294,10 @@ function updateStateUI() {
         left.appendChild(texts);
 
         const right = document.createElement('div');
-        right.className = 'field-right';
+        right.className = 'field-right-group';
 
-        const statusRaw = (field.status || 'unknown').toLowerCase().replace('_', '-');
         const badge = document.createElement('span');
-        badge.className = `status-badge ${statusRaw}`;
+        badge.className = `status-pill ${statusRaw}`;
         badge.textContent = (field.status || 'UNKNOWN').replace('_', ' ');
 
         const chevron = document.createElement('span');
@@ -309,14 +315,13 @@ function updateStateUI() {
     // Render Changes
     const changes = STATE.state.change_history || [];
     elChangeHistory.innerHTML = '';
-    if (elAuditCount) elAuditCount.textContent = changes.length;
 
     if (changes.length === 0) {
-        elChangeHistory.innerHTML = '<span class="empty-text">No changes recorded yet.</span>';
+        elChangeHistory.innerHTML = '<span class="empty-hint">No changes recorded yet.</span>';
     } else {
         changes.slice(-10).reverse().forEach(ch => {
             const item = document.createElement('div');
-            item.className = 'change-history-item';
+            item.className = 'audit-entry-item';
             item.innerHTML = `<strong>${ch.field}</strong>: <span>${JSON.stringify(ch.old_val)} → ${JSON.stringify(ch.new_val)}</span> (${ch.kind})`;
             elChangeHistory.appendChild(item);
         });
@@ -339,13 +344,13 @@ async function updateDocumentPreview() {
         
         if (data.is_complete) {
             elDocCompletionBadge.textContent = '100% Complete';
-            elDocCompletionBadge.className = 'badge-status-pill complete';
+            elDocCompletionBadge.className = 'pill-badge pill-draft complete';
         } else {
             const missingCount = (data.missing_fields || []).length;
             const completedCount = 7 - missingCount;
             const pct = Math.max(0, Math.min(100, Math.round((completedCount / 7) * 100)));
             elDocCompletionBadge.textContent = `${pct}% Complete (${missingCount} missing)`;
-            elDocCompletionBadge.className = 'badge-status-pill';
+            elDocCompletionBadge.className = 'pill-badge pill-draft';
         }
     } catch (err) {
         console.error('Document preview error:', err);
@@ -384,6 +389,15 @@ elBtnCopyDoc.addEventListener('click', () => {
 if (elBtnDownloadPdf) {
     elBtnDownloadPdf.addEventListener('click', () => {
         window.print();
+    });
+}
+
+if (elBtnViewDocTop) {
+    elBtnViewDocTop.addEventListener('click', () => {
+        const docCol = document.getElementById('document-section');
+        if (docCol) {
+            docCol.scrollIntoView({ behavior: 'smooth' });
+        }
     });
 }
 
@@ -438,9 +452,9 @@ elManualEditForm.addEventListener('submit', async (e) => {
 });
 
 // Document navigation links click handler
-document.querySelectorAll('.doc-nav-link').forEach(link => {
+document.querySelectorAll('.doc-nav-item').forEach(link => {
     link.addEventListener('click', () => {
-        document.querySelectorAll('.doc-nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.doc-nav-item').forEach(l => l.classList.remove('active'));
         link.classList.add('active');
     });
 });
