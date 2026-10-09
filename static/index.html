@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,157 +7,282 @@
     <meta name="description" content="AI-assisted Document Intake Assistant for structuring personal wishes and estate information.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <header class="app-header">
+    <!-- App Header -->
+    <header class="app-header glass-panel">
         <div class="header-left">
-            <div class="logo-mark">W</div>
+            <div class="logo-mark">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
             <div class="app-title-group">
-                <h1 class="app-title">Wenup Intake Assistant</h1>
+                <div class="title-row">
+                    <h1 class="app-title">Wenup Intake Assistant</h1>
+                    <span class="version-tag">AI 2.0</span>
+                </div>
                 <span class="app-subtitle">Personal Wishes Intake & Document Generation</span>
             </div>
         </div>
+
         <div class="header-right">
-            <div class="session-info">
+            <!-- Live Session Pill -->
+            <div class="session-info glass-pill" id="session-pill">
+                <span class="status-dot pulsing"></span>
                 <span class="session-label">Session:</span>
-                <span id="session-id-display" class="session-id">Initializing...</span>
+                <span id="session-id-display" class="session-id">Connecting...</span>
             </div>
-            <button id="btn-new-session" class="btn btn-secondary" title="Start a new intake session">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                New Session
+
+            <!-- Theme Toggle -->
+            <button id="btn-theme-toggle" class="btn btn-icon glass-button" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+                <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </button>
+
+            <!-- Action Buttons -->
+            <button id="btn-view-doc-shortcut" class="btn btn-outline btn-glass">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                <span>View Document</span>
+            </button>
+
+            <button id="btn-new-session" class="btn btn-primary btn-glow" title="Start a new intake session">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <span>New Session</span>
+            </button>
+
+            <div class="user-avatar" title="Active User Profile">
+                <span>S</span>
+            </div>
         </div>
     </header>
 
-    <main class="three-column-layout">
-        <!-- COLUMN 1: Conversation Stream -->
-        <section class="column column-chat" aria-label="Conversation Column">
+    <!-- Main Workspace Layout -->
+    <main class="three-column-layout main-grid">
+        
+        <!-- SECTION 1: Conversation Stream (Chat) -->
+        <section class="column column-chat glass-card" aria-label="Conversation Column">
             <div class="column-header">
-                <h2>Intake Dialogue</h2>
-                <span id="turn-counter" class="badge badge-muted">Turn 0</span>
+                <div class="header-title-box">
+                    <div class="section-icon chat-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h2>Conversation</h2>
+                        <span class="column-desc">Chat with the assistant to record your personal wishes</span>
+                    </div>
+                </div>
+                <div class="header-badge-group">
+                    <span id="turn-counter" class="badge badge-turn">Turn 0</span>
+                </div>
             </div>
             
             <div id="chat-messages" class="chat-messages-container" role="log" aria-live="polite">
-                <!-- Messages will be dynamically rendered here -->
+                <!-- Chat bubbles rendered dynamically -->
             </div>
 
+            <!-- Contradiction Warning Banner -->
             <div id="contradiction-banner" class="contradiction-banner hidden" role="alert">
-                <div class="banner-icon">⚠️</div>
+                <div class="banner-icon-glow">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
                 <div class="banner-content">
-                    <strong>Contradiction Detected</strong>
+                    <div class="banner-title">Contradiction Detected</div>
                     <p id="contradiction-message">A conflict was found with previously confirmed information.</p>
                 </div>
             </div>
 
+            <!-- Suggested Quick Replies -->
+            <div id="quick-replies-bar" class="quick-replies-container">
+                <!-- Dynamically generated quick reply chips -->
+            </div>
+
+            <!-- Chat Input Form -->
             <form id="chat-form" class="chat-input-form">
-                <textarea 
-                    id="chat-input" 
-                    placeholder="Type your answers, details, or corrections..." 
-                    rows="2" 
-                    required
-                ></textarea>
-                <div class="input-actions">
-                    <button type="submit" id="btn-send" class="btn btn-primary">
-                        <span>Send</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    </button>
+                <div class="input-wrapper glass-input">
+                    <textarea 
+                        id="chat-input" 
+                        placeholder="Type your answers, details, or corrections..." 
+                        rows="2" 
+                        required
+                    ></textarea>
+                    
+                    <div class="input-toolbar">
+                        <button type="button" class="btn-tool" id="btn-quick-voice" title="Quick voice simulation">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                        </button>
+                        <div class="input-actions">
+                            <button type="submit" id="btn-send" class="btn btn-primary btn-send-round" title="Send message">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </section>
 
-        <!-- COLUMN 2: Structured State Inspector -->
-        <section class="column column-state" aria-label="Structured State Column">
+        <!-- SECTION 2: Structured State Inspector (Your Information) -->
+        <section class="column column-state glass-card" aria-label="Structured State Column">
             <div class="column-header">
-                <h2>Structured State</h2>
+                <div class="header-title-box">
+                    <div class="section-icon state-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    </div>
+                    <div>
+                        <h2>Your Information</h2>
+                        <span class="column-desc">Extracted from the conversation</span>
+                    </div>
+                </div>
                 <div class="state-header-actions">
-                    <button id="btn-manual-edit-toggle" class="btn btn-sm btn-outline">Direct Edit</button>
+                    <button id="btn-manual-edit-toggle" class="btn btn-sm btn-outline btn-glass">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit All
+                    </button>
                 </div>
             </div>
 
             <div class="state-scroll-container">
                 <!-- Direct Edit Panel (Collapsible) -->
-                <div id="manual-edit-panel" class="manual-edit-card hidden">
-                    <h3>Manual State Override (F17 / F22)</h3>
+                <div id="manual-edit-panel" class="manual-edit-card hidden glass-panel">
+                    <div class="edit-header">
+                        <h3>Manual State Override</h3>
+                        <span class="edit-subtitle">Direct field update</span>
+                    </div>
                     <form id="manual-edit-form">
                         <div class="form-group">
-                            <label for="edit-field-select">Field:</label>
+                            <label for="edit-field-select">Target Field:</label>
                             <select id="edit-field-select" class="form-control">
-                                <option value="full_name">full_name</option>
-                                <option value="home_address">home_address</option>
-                                <option value="covers_worldwide_assets">covers_worldwide_assets</option>
-                                <option value="has_children">has_children</option>
+                                <option value="full_name">full_name (Full Legal Name)</option>
+                                <option value="home_address">home_address (Residential Address)</option>
+                                <option value="covers_worldwide_assets">covers_worldwide_assets (Worldwide Asset Coverage)</option>
+                                <option value="has_children">has_children (Has Children)</option>
                                 <option value="children">children (JSON array e.g. ["Aarav"])</option>
-                                <option value="executor.name">executor.name</option>
-                                <option value="executor.relationship">executor.relationship</option>
-                                <option value="specific_gifts">specific_gifts</option>
-                                <option value="additional_wishes">additional_wishes</option>
+                                <option value="executor.name">executor.name (Executor Name)</option>
+                                <option value="executor.relationship">executor.relationship (Executor Relationship)</option>
+                                <option value="specific_gifts">specific_gifts (Specific Gifts)</option>
+                                <option value="additional_wishes">additional_wishes (Additional Wishes)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="edit-field-value">Value:</label>
+                            <label for="edit-field-value">New Value:</label>
                             <input type="text" id="edit-field-value" class="form-control" placeholder="e.g. true, false, John Doe, ['Aarav']">
                         </div>
-                        <div class="form-group">
-                            <label for="edit-field-status">Status:</label>
-                            <select id="edit-field-status" class="form-control">
-                                <option value="CONFIRMED">CONFIRMED</option>
-                                <option value="UNCONFIRMED">UNCONFIRMED</option>
-                                <option value="NOT_APPLICABLE">NOT_APPLICABLE</option>
-                                <option value="UNKNOWN">UNKNOWN</option>
-                            </select>
-                        </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-sm btn-primary">Apply Change</button>
+                            <button type="submit" class="btn btn-sm btn-primary">Apply Update</button>
                             <button type="button" id="btn-cancel-edit" class="btn btn-sm btn-secondary">Cancel</button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Fields Summary Cards -->
+                <!-- Fields Summary Cards List -->
                 <div id="fields-grid" class="fields-grid">
                     <!-- Fields dynamically injected -->
                 </div>
 
                 <!-- Audit Log / Changes -->
-                <div class="audit-section">
-                    <h3 class="section-title">Change Audit Log</h3>
+                <div class="audit-section glass-panel">
+                    <div class="audit-header">
+                        <h3 class="section-title">Change Audit Log</h3>
+                        <span class="audit-badge">Recorded</span>
+                    </div>
                     <div id="change-history" class="change-list">
                         <span class="empty-state">No changes recorded yet.</span>
                     </div>
                 </div>
 
                 <!-- Raw JSON View -->
-                <details class="raw-json-details">
+                <details class="raw-json-details glass-panel">
                     <summary>View Raw State JSON</summary>
                     <pre id="raw-state-json" class="json-code">{}</pre>
                 </details>
             </div>
         </section>
 
-        <!-- COLUMN 3: Live Document Preview -->
-        <section class="column column-doc" aria-label="Document Preview Column">
+        <!-- SECTION 3: Live Document Preview -->
+        <section class="column column-doc glass-card" id="document-section" aria-label="Document Preview Column">
             <div class="column-header">
-                <h2>Document Preview</h2>
+                <div class="header-title-box">
+                    <div class="section-icon doc-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    </div>
+                    <div>
+                        <div class="doc-title-row">
+                            <h2>Document Preview</h2>
+                            <span class="draft-pill">DRAFT</span>
+                        </div>
+                        <span class="column-desc">Live preview of your personal wishes document</span>
+                    </div>
+                </div>
                 <div class="doc-header-actions">
                     <span id="doc-completion-badge" class="badge badge-warning">0% Complete</span>
-                    <button id="btn-copy-doc" class="btn btn-sm btn-outline" title="Copy Document Markdown">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        Copy
+                    <button id="btn-copy-doc" class="btn btn-sm btn-outline btn-glass" title="Copy Document Markdown">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <span>Copy</span>
+                    </button>
+                    <button id="btn-download-pdf" class="btn btn-sm btn-outline btn-glass" title="Download Document as Printable PDF">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>Download</span>
                     </button>
                 </div>
             </div>
 
-            <div class="doc-preview-container">
-                <div id="doc-legal-disclaimer" class="legal-disclaimer-box">
-                    <div class="disclaimer-tag">MANDATORY NOTICE</div>
-                    <p>THIS DOCUMENT CONSTITUTES AN INFORMAL RECORD OF PERSONAL WISHES ONLY AND IS NOT A LEGALLY BINDING WILL OR TESTAMENT.</p>
+            <!-- Document Workspace Body with Side Nav & Paper View -->
+            <div class="doc-split-layout">
+                <!-- Mini Sections Navigation -->
+                <div class="doc-nav-sidebar">
+                    <div class="nav-item active" data-section="1">
+                        <span class="nav-num">1.</span>
+                        <span class="nav-text">Principal Identification</span>
+                    </div>
+                    <div class="nav-item" data-section="2">
+                        <span class="nav-num">2.</span>
+                        <span class="nav-text">Jurisdiction & Assets</span>
+                    </div>
+                    <div class="nav-item" data-section="3">
+                        <span class="nav-num">3.</span>
+                        <span class="nav-text">Family & Children</span>
+                    </div>
+                    <div class="nav-item" data-section="4">
+                        <span class="nav-num">4.</span>
+                        <span class="nav-text">Appointment of Executor</span>
+                    </div>
+                    <div class="nav-item" data-section="5">
+                        <span class="nav-num">5.</span>
+                        <span class="nav-text">Specific Gifts & Bequests</span>
+                    </div>
+                    <div class="nav-item" data-section="6">
+                        <span class="nav-num">6.</span>
+                        <span class="nav-text">Additional Wishes</span>
+                    </div>
                 </div>
 
-                <div id="doc-content" class="doc-markdown-content">
-                    <div class="doc-placeholder">
-                        <p>Document will be generated as structured intake information is gathered...</p>
+                <!-- Document Paper Canvas -->
+                <div class="doc-preview-container">
+                    <div class="legal-paper-canvas">
+                        <div id="doc-legal-disclaimer" class="legal-disclaimer-box">
+                            <div class="disclaimer-tag">MANDATORY NOTICE</div>
+                            <p>THIS DOCUMENT CONSTITUTES AN INFORMAL RECORD OF PERSONAL WISHES ONLY AND IS NOT A LEGALLY BINDING WILL OR TESTAMENT.</p>
+                        </div>
+
+                        <!-- Rendered Legal Document -->
+                        <div class="legal-paper-header">
+                            <h2 class="doc-main-heading">Personal Wishes Declaration</h2>
+                            <div class="doc-sub-tag">FICTIONAL DRAFT &bull; NOT LEGAL ADVICE</div>
+                            <div class="doc-divider"></div>
+                        </div>
+
+                        <div id="doc-content" class="doc-markdown-content">
+                            <div class="doc-placeholder">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px; opacity: 0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                <p>Document will be generated as structured intake information is gathered...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
