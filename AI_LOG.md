@@ -637,7 +637,7 @@ Fix address input fallback issue where Gemini wrapped JSON inside ````json ... `
 - Added test environment isolation in `tests/conftest.py` ensuring fast offline mock testing.
 
 ### Result
-- Tested live extractions on `"International Institute of Information Technology , Pune"`, `"I live at I2IT college , which is situated at Hinjewadi in Pune"`, and `"123 Main Street, Apt 4B, New York, NY 10001, United States"`. All parsed with 100% precision.
+- Successfully tested and verified live extractions on the reported address examples (`"International Institute of Information Technology , Pune"`, `"I live at I2IT college , which is situated at Hinjewadi in Pune"`, and `"123 Main Street, Apt 4B, New York, NY 10001, United States"`).
 - All 101 unit and integration tests passing.
 
 ---
@@ -696,7 +696,7 @@ Fix post-intake conversational loop where, once the document was complete, the a
 Conduct final end-to-end conversational intake session across all fields, edge cases, contradiction resolutions, unformatted institutional addresses, multi-turn role separation, closing negative phrases, and summary generation. Verify system stability, 102/102 test suite integrity, and synthesize production improvement recommendations.
 
 ### Output that was useful
-- Validated 100% of the intake flow in live environment:
+- Validated the complete end-to-end intake flow in live environment:
   1. Full Name captured & formatted (`Gandu Sharma`).
   2. Unformatted address accepted without loop (`i2it , hinjewadi , PUne`).
   3. Contextual affirmative answered worldwide coverage on turn 1 (`yes`).
@@ -707,8 +707,8 @@ Conduct final end-to-end conversational intake session across all fields, edge c
   8. Natural conversational signoff.
 
 ### What I questioned
-- *What architectural enhancements are needed before taking this to large-scale enterprise production?*
-  **Answer**: Detailed below in the Production Improvements section (distributed persistence, streaming SSE, encrypted PII, PDF rendering, automated eval pipelines).
+- *What architectural enhancements are needed before taking this to production?*
+  **Answer**: Detailed below in the Production Improvements section (persistent storage, streaming responses, PII protection, document exports, and LLM evaluation).
 
 ### Result
 - 102/102 unit, integration, and scenario tests passing.
@@ -716,32 +716,30 @@ Conduct final end-to-end conversational intake session across all fields, edge c
 
 ---
 
-## Production Improvements & Architectural Roadmap
+## Production Improvements & Roadmap
 
-If transitioning this intake assistant into an enterprise production environment, the following 5 key enhancements are recommended:
+If transitioning this intake assistant into a production environment, the following practical enhancements are recommended:
 
-### 1. Distributed Storage & Session Persistence
+### 1. Persistent Session Storage
 - **Current State**: In-memory `SessionStore` with per-session `asyncio.Lock()`.
-- **Production Enhancement**: Transition to **PostgreSQL** with JSONB columns for state and audit logs, managed via SQLAlchemy / AsyncPG, paired with **Redis** for distributed locking and session caching. This allows horizontal scaling across multiple Kubernetes pods without state fragmentation.
+- **Production Enhancement**: Transition to **PostgreSQL** (storing structured state and change history in JSONB columns) with SQLAlchemy / AsyncPG, paired with **Redis** for distributed session locking and caching.
 
-### 2. Streaming Responses (SSE / WebSockets)
-- **Current State**: Request-response cycle waiting for full LLM composition before returning HTTP 200.
-- **Production Enhancement**: Implement **Server-Sent Events (SSE)** or WebSockets for token-by-token streaming from Gemini (`generate_content_stream`). This reduces perceived latency from ~1.5s to <200ms for conversational feedback while structured extraction runs asynchronously in the background.
+### 2. Streaming Conversational Responses (SSE)
+- **Current State**: Standard request-response cycle waiting for the full LLM response.
+- **Production Enhancement**: Implement **Server-Sent Events (SSE)** to stream conversational assistant messages token-by-token for lower perceived latency, while structured JSON extraction continues to run deterministically.
 
-### 3. PII Encryption & Enterprise Compliance (GDPR / HIPAA)
-- **Current State**: In-memory domain objects store personal names, addresses, and beneficiary relations.
-- **Production Enhancement**: Implement envelope encryption (AES-256-GCM) for sensitive PII fields at rest and in database columns. Add automated data retention policies, right-to-be-forgotten endpoints, and immutable tamper-evident audit trails.
+### 3. PII Protection & Data Privacy
+- **Current State**: Cleartext state models.
+- **Production Enhancement**: Apply field-level encryption for sensitive PII (names, addresses, beneficiary information) at rest in the database, along with configurable data retention and session expiration policies.
 
-### 4. Multi-Jurisdictional Legal Templates & PDF Export
-- **Current State**: Deterministic markdown draft rendering with mandatory fictional disclaimers.
-- **Production Enhancement**: Integrate a template registry (e.g. Jinja2 + LaTeX / WeasyPrint) supporting jurisdiction-specific statutory clauses (e.g., California statutory will vs. England & Wales formalities), paired with digital signature integration (DocuSign / HelloSign) and certified PDF generation.
+### 4. Document Export (PDF / Formatted Downloads)
+- **Current State**: Plain text / markdown document preview in the UI with copy functionality.
+- **Production Enhancement**: Add clean PDF and DOCX export capabilities using lightweight rendering libraries (e.g. WeasyPrint or Jinja2 templates) so users can download and print their draft wishes directly.
 
-### 5. Continuous Offline & Online Evaluation Pipeline
-- **Current State**: 102 deterministic unit/integration/golden tests with mock provider.
-- **Production Enhancement**: Deploy an automated LLM evaluation pipeline (using tools like Ragas, TruLens, or LangSmith) to score live turns continuously on:
-  - **Grounding & Faithfulness**: Verifying 0% hallucinations against user evidence.
-  - **Intent Precision**: Measuring extraction recall across informal dialects and slang.
-  - **Safety & Injection Defense**: Nightly adversarial fuzzing against prompt injection and system prompt extraction attacks.
+### 5. Continuous LLM Evaluation & Grounding Monitoring
+- **Current State**: 102 deterministic offline unit, integration, and golden scenario tests.
+- **Production Enhancement**: Establish an automated offline evaluation pipeline to benchmark extraction accuracy across prompt updates, tracking groundedness metrics and catching prompt regressions automatically.
+
 
 
 
