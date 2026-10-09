@@ -109,7 +109,7 @@ APP_NAME="Document Intake Assistant"
 APP_ENV=development
 LLM_PROVIDER=mock          # Options: "mock" (default, offline) or "gemini"
 GEMINI_API_KEY=           # Required if LLM_PROVIDER=gemini
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 LOG_LEVEL=INFO
 HOST=0.0.0.0
 PORT=8000
@@ -117,7 +117,7 @@ PORT=8000
 
 ### 3. Running the Test Suite
 
-Run the full test suite (98 unit, integration, and scenario tests):
+Run the full test suite (102 unit, integration, and scenario tests):
 
 ```bash
 .venv/bin/pytest -v
@@ -222,12 +222,13 @@ WenupAI/
 │   ├── index.html
 │   ├── styles.css
 │   └── app.js
-├── tests/                    # Comprehensive Test Suite (98 tests)
+├── tests/                    # Comprehensive Test Suite (102 tests)
 │   ├── scenarios/            # Golden scenario test suite (8 scenarios)
 │   │   └── test_golden_scenarios.py
-│   ├── integration/          # API endpoints, manual corrections, static UI
+│   ├── integration/          # API endpoints, manual corrections, regressions, static UI
 │   │   ├── test_api_endpoints.py
 │   │   ├── test_manual_correction.py
+│   │   ├── test_manual_session_regressions.py
 │   │   └── test_static_frontend.py
 │   └── unit/                 # Unit tests for domain, LLM, grounding, docgen
 ├── AI_LOG.md                 # Complete chronological engineering log
