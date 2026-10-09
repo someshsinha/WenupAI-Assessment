@@ -117,18 +117,33 @@ def build_compose_prompt(
     context: dict[str, Any],
     recent_messages: list[dict[str, str]] | None = None,
 ) -> str:
+    history_lines = []
+    if recent_messages:
+        for msg in recent_messages[-4:]:
+            role = msg.get("role", "user").capitalize()
+            content = msg.get("content", "")
+            history_lines.append(f"{role}: {content}")
+    history_text = "\n".join(history_lines) if history_lines else "None"
+
     return f"""You are a helpful, empathetic, and professional Document Intake Assistant helping a user draft their fictional Personal Wishes Document.
 
 YOUR TASK:
-Generate a single, natural conversational response for the given next action.
+Generate a single, natural conversational response for the given next action in the context of recent conversation.
 You MUST strictly adhere to the required workflow action. Do NOT ask for unrelated fields or decide a different action.
 
 ACTION REQUIRED: {action}
-ACTION CONTEXT: {json.dumps(context)}
+ACTION CONTEXT: {json.dumps(context, indent=2, default=str)}
+
+RECENT CONVERSATION HISTORY:
+{history_text}
 
 RULES:
 - Be polite, concise, and clear.
 - Acknowledge any information the user just provided naturally.
 - Clearly present the specific question or clarification required by the action.
+- WHEN ACTION IS 'COMPLETE':
+  * If the user is asking for a summary (or said "yes", "summary", "give me summary"), provide a structured bulleted summary of all recorded wishes (Full Name, Address, Assets Coverage, Children, Executor, Gifts, Wishes) and state that the document is complete and ready in the Document Preview panel.
+  * If the user is saying thank you, bye, or confirming, provide a warm concluding sign-off.
+  * Do NOT ask repetitive rhetorical questions like "Would you like me to generate a summary?" in a loop if the user already asked for it or agreed.
 - Return only the conversational response text without meta-commentary.
 """

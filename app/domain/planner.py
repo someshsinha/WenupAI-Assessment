@@ -100,7 +100,21 @@ def plan_next_action(session: Session) -> tuple[PlannerAction, dict[str, Any]]:
         return PlannerAction.ASK_ADDITIONAL_WISHES, {}
 
     # 4. All requirements satisfied
-    return PlannerAction.COMPLETE, {}
+    gifts_val = state.specific_gifts.value or []
+    return PlannerAction.COMPLETE, {
+        "status": "complete",
+        "state_summary": {
+            "full_name": state.full_name.value,
+            "home_address": state.home_address.value,
+            "covers_worldwide_assets": state.covers_worldwide_assets.value,
+            "has_children": state.has_children.value,
+            "children": state.children.value,
+            "executor_name": state.executor.name.value,
+            "executor_relationship": state.executor.relationship.value,
+            "specific_gifts": [g.model_dump() if hasattr(g, "model_dump") else g for g in gifts_val],
+            "additional_wishes": state.additional_wishes.value,
+        }
+    }
 
 
 def _find_first_unconfirmed_field(state: WishesState) -> tuple[str, Any] | None:
