@@ -672,6 +672,23 @@ Fix conversational loop where single-word affirmative answers (e.g., "yes", "yes
 - Live Gemini tests verified: `"yes"`, `"yes I do own"`, `"no"`, `"yeah"`, `"nope"` accurately extract to `covers_worldwide_assets` with high confidence.
 - 102/102 tests passing.
 
+---
+
+## Log Entry 030 — Structured Completion Summary & Elimination of Post-Completion Loops
+
+### Prompt / Task
+Fix post-intake conversational loop where, once the document was complete, the assistant asked "Would you like me to generate a summary?", and when the user answered "yes" or "give me complete summary", the assistant repeatedly re-asked the same question instead of outputting the summary.
+
+### Output that was useful
+- Passed full `state_summary` in `action_context` when `plan_next_action` returns `PlannerAction.COMPLETE`.
+- Injected `recent_messages` into `build_compose_prompt` in `app/llm/prompts.py`.
+- Instructed response composer that upon `COMPLETE`, if user asks for a summary or agrees, it must generate a clean bulleted breakdown of all recorded wishes and direct the user to the Document Preview panel.
+
+### Result
+- Verified live with Gemini: when user requests a summary, assistant outputs full structured bulleted summary without looping.
+- 102/102 test suite passing.
+
+
 
 
 
