@@ -29,13 +29,16 @@ class ExtractionAmbiguity(BaseModel):
     """Ambiguous or vague statement detected during extraction."""
     field: str | None = None
     evidence: str | None = None
-    issue: str
+    issue: str = "Ambiguous statement"
+    description: str | None = None
+    reason: str | None = None
+    ambiguity_type: str | None = None
 
 
 class ExtractionContradiction(BaseModel):
     """Contradiction or conflict identified during extraction."""
-    field: str
-    evidence: str
+    field: str = "unknown"
+    evidence: str = ""
     conflicting_value: Any = None
     explanation: str | None = None
 
