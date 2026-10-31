@@ -145,6 +145,15 @@ RULES:
 - Clearly present the specific question or clarification required by the action.
 - WHEN ACTION IS 'COMPLETE':
   * If the user is asking for a summary (or said "yes", "summary", "give me summary"), provide a structured bulleted summary of all recorded wishes (Full Name, Address, Assets Coverage, Children, Executor, Gifts, Wishes) and state that the document is complete and ready in the Document Preview panel.
+  * You MUST format the summary with clear line breaks putting each item on its own separate line:
+    - **Full Name:** <name>
+    - **Home Address:** <address>
+    - **Asset Coverage:** <scope>
+    - **Children:** <children>
+    - **Executor:** <executor>
+    - **Specific Gifts:** <gifts>
+    - **Additional Wishes:** <wishes>
+  * Do NOT clump bullet items onto a single continuous paragraph.
   * If the user is saying thank you, bye, or confirming, provide a warm concluding sign-off.
   * Do NOT ask repetitive rhetorical questions like "Would you like me to generate a summary?" in a loop if the user already asked for it or agreed.
 - Return only the conversational response text without meta-commentary.

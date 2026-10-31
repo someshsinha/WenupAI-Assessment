@@ -112,6 +112,24 @@ async function sendMessage(content) {
     }
 }
 
+// Format assistant message content for clean rendering
+function formatChatContent(raw) {
+    if (!raw) return '';
+    let text = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Convert bold **text** to <strong>text</strong>
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Ensure bullet lists break onto separate lines cleanly
+    text = text.replace(/([^\n])\s+-\s+<strong>/g, '$1\n• <strong>');
+    text = text.replace(/(?:^|\n)-\s+/g, '\n• ');
+
+    return text.trim();
+}
+
 // Append chat message
 function appendMessage(role, text) {
     const bubble = document.createElement('div');
@@ -119,7 +137,11 @@ function appendMessage(role, text) {
     
     const content = document.createElement('div');
     content.className = 'chat-bubble-content';
-    content.textContent = text;
+    if (role === 'assistant') {
+        content.innerHTML = formatChatContent(text);
+    } else {
+        content.textContent = text;
+    }
     bubble.appendChild(content);
 
     const meta = document.createElement('div');
@@ -204,7 +226,18 @@ function updateStateUI() {
         if (displayVal === null || displayVal === undefined) {
             displayVal = '—';
         } else if (Array.isArray(displayVal)) {
-            displayVal = displayVal.length > 0 ? JSON.stringify(displayVal) : '[] (None)';
+            if (displayVal.length === 0) {
+                displayVal = 'None';
+            } else if (name === 'specific_gifts') {
+                displayVal = displayVal.map(g => {
+                    if (typeof g === 'object' && g !== null) {
+                        return g.recipient ? `${g.item} (to ${g.recipient})` : g.item;
+                    }
+                    return String(g);
+                }).join('; ');
+            } else {
+                displayVal = displayVal.join(', ');
+            }
         } else if (typeof displayVal === 'boolean') {
             displayVal = displayVal ? 'Yes (true)' : 'No (false)';
         }
