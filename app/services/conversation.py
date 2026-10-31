@@ -87,6 +87,22 @@ class ConversationService:
                     or (target_f == "children" and f in ("has_children", "children"))
                 ):
                     op_dict["is_correction"] = True
+        else:
+            # Enforce DECISIONS.md #4: An unacknowledged conflict is NEVER a silent overwrite.
+            # An operation is only an explicit correction if the user included explicit correction directives,
+            # or if providing executor.name for the first time allows refining executor.relationship.
+            import re
+            correction_pattern = re.compile(
+                r"\b(correction|correct|mistake|actually|change|update|instead of|wrong|rather)\b",
+                re.IGNORECASE,
+            )
+            has_correction_word = bool(correction_pattern.search(user_message))
+            if not has_correction_word:
+                for op_dict in proposed_ops_dicts:
+                    f = op_dict.get("field", "")
+                    if f == "executor.relationship" and not new_session.state.executor.name.is_confirmed():
+                        continue
+                    op_dict["is_correction"] = False
 
         detected_contradictions = detect_contradictions(
             state=new_session.state,

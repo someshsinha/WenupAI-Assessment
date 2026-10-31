@@ -28,7 +28,7 @@ OPERATIONS:
 
 RULES:
 1. Every operation MUST include exact 'evidence' (the verbatim phrase from the latest user message justifying the value).
-2. If the user makes an explicit correction (e.g., "Actually, my name is...", "Correction:", "Instead of..."), set 'is_correction': true.
+2. If the user makes an explicit correction using clear corrective phrases (e.g., "Actually, my name is...", "Correction:", "Instead of...", "I made a mistake"), set 'is_correction': true. If the user merely provides conflicting statements without corrective language, set 'is_correction': false.
 
 3. CONTEXTUAL YES / NO / AFFIRMATIVE / NEGATIVE ANSWERS:
    - If the last assistant question asked about worldwide assets / assets outside the home country:
@@ -49,7 +49,7 @@ RULES:
        {"op": "set", "field": "additional_wishes", "value": [], "evidence": "<verbatim phrase>", "confidence": "high", "is_correction": false}
 
 4. FREE-FORM WISHES:
-   - If the user provides any free-form instructions, preferences, memorial wishes, or personal statements for additional wishes (e.g. "play jazz at my funeral", "sex is very nice", "donate books to library"), extract them into "additional_wishes" list.
+   - If the user provides any free-form instructions, preferences, memorial wishes, or personal statements for additional wishes (e.g. "play jazz at my funeral", "donate books to library"), extract them into "additional_wishes" list.
 
 5. AMBIGUITY HANDLING:
    - Only flag ambiguities for genuinely unclear statements where a user intent cannot be determined. Do NOT flag concise answers ("yes", "no", "nothing", "not much") as ambiguous when answering the active question.

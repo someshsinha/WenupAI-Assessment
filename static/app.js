@@ -140,7 +140,10 @@ function updateStateUI() {
     // Check contradiction banner
     if (STATE.pendingClarification && STATE.pendingClarification.issue_type === 'contradiction') {
         elContradictionBanner.classList.remove('hidden');
-        elContradictionMsg.textContent = STATE.pendingClarification.prompt || 'A conflict was detected with previously confirmed information.';
+        elContradictionMsg.textContent = STATE.pendingClarification.question_to_ask ||
+            STATE.pendingClarification.prompt ||
+            STATE.pendingClarification.user_statement ||
+            'A conflict was detected with previously confirmed information.';
     } else {
         elContradictionBanner.classList.add('hidden');
     }
@@ -162,8 +165,17 @@ function updateStateUI() {
     items.forEach(({ name, field }) => {
         if (!field) return;
 
+        const isConflict = STATE.pendingClarification &&
+            STATE.pendingClarification.issue_type === 'contradiction' &&
+            (
+                STATE.pendingClarification.field === name ||
+                (STATE.pendingClarification.field === 'has_children' && (name === 'has_children' || name === 'children')) ||
+                (STATE.pendingClarification.field === 'children' && (name === 'has_children' || name === 'children')) ||
+                (STATE.pendingClarification.field.startsWith('executor') && name.startsWith('executor'))
+            );
+
         const card = document.createElement('div');
-        card.className = 'field-card';
+        card.className = 'field-card' + (isConflict ? ' field-conflict' : '');
 
         const top = document.createElement('div');
         top.className = 'field-card-top';
@@ -172,10 +184,15 @@ function updateStateUI() {
         nameSpan.className = 'field-name';
         nameSpan.textContent = name;
 
-        const statusStr = (field.status || 'unknown').toLowerCase();
         const badge = document.createElement('span');
-        badge.className = `badge badge-${statusStr.replace('_', '-')}`;
-        badge.textContent = field.status || 'UNKNOWN';
+        if (isConflict) {
+            badge.className = 'badge badge-danger badge-pulsing';
+            badge.textContent = 'CONTRADICTION';
+        } else {
+            const statusStr = (field.status || 'unknown').toLowerCase();
+            badge.className = `badge badge-${statusStr.replace('_', '-')}`;
+            badge.textContent = field.status || 'UNKNOWN';
+        }
 
         top.appendChild(nameSpan);
         top.appendChild(badge);
@@ -196,6 +213,17 @@ function updateStateUI() {
 
         card.appendChild(top);
         card.appendChild(valSpan);
+
+        if (isConflict) {
+            const conflictNote = document.createElement('div');
+            conflictNote.className = 'field-conflict-note';
+            const conflictDetail = STATE.pendingClarification.conflicting_value !== undefined && STATE.pendingClarification.conflicting_value !== null
+                ? JSON.stringify(STATE.pendingClarification.conflicting_value)
+                : STATE.pendingClarification.user_statement;
+            conflictNote.textContent = `⚠️ Conflict detected with: ${conflictDetail}`;
+            card.appendChild(conflictNote);
+        }
+
         elFieldsGrid.appendChild(card);
     });
 
@@ -228,7 +256,10 @@ async function updateDocumentPreview() {
         STATE.document = data;
         elDocContent.textContent = data.text || 'No document content available.';
         
-        if (data.is_complete) {
+        if (STATE.pendingClarification && STATE.pendingClarification.issue_type === 'contradiction') {
+            elDocCompletionBadge.textContent = 'Blocked (Contradiction)';
+            elDocCompletionBadge.className = 'badge badge-danger';
+        } else if (data.is_complete) {
             elDocCompletionBadge.textContent = 'Complete (100%)';
             elDocCompletionBadge.className = 'badge badge-confirmed';
         } else {

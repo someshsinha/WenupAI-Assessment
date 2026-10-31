@@ -113,3 +113,23 @@ async def test_conversation_service_provider_error_safe_fallback():
     assert updated_session.state.full_name.value is None
     assert len(changes) == 0
     assert len(updated_session.messages) == 2
+
+
+@pytest.mark.asyncio
+async def test_conversation_service_conflicting_statement_without_correction_keyword_triggers_contradiction():
+    mock_llm = MockLLMClient()
+    service = ConversationService(llm_client=mock_llm)
+
+    session = Session(id="sess_conflict_guard")
+    session.state.has_children = Field[bool](value=True, status=FieldStatus.CONFIRMED)
+    session.state.children = Field[list[str]](value=["Mr Anthony"], status=FieldStatus.CONFIRMED)
+
+    # User simply asserts conflicting fact without correction keyword
+    updated_session, assistant_msg, changes = await service.process_user_turn(session, "yes I do not have children")
+
+    assert updated_session.pending_clarification is not None
+    assert updated_session.pending_clarification.issue_type == "contradiction"
+    assert updated_session.pending_clarification.field == "has_children"
+    assert updated_session.state.has_children.value is True
+    assert "Earlier you stated that you have children" in assistant_msg or "clarify" in assistant_msg.lower()
+
