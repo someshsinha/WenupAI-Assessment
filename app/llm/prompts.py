@@ -28,7 +28,8 @@ OPERATIONS:
 
 RULES:
 1. Every operation MUST include exact 'evidence' (the verbatim phrase from the latest user message justifying the value).
-2. If the user makes an explicit correction using clear corrective phrases (e.g., "Actually, my name is...", "Correction:", "Instead of...", "I made a mistake"), set 'is_correction': true. If the user merely provides conflicting statements without corrective language, set 'is_correction': false.
+2. VERBATIM ACCURACY: Do NOT modify, autocorrect, spellcheck, or alter the user's input (names, addresses, gifts, wishes). Extract values exactly as written by the user.
+3. If the user makes an explicit correction using clear corrective phrases (e.g., "Actually, my name is...", "Correction:", "Instead of...", "I made a mistake"), set 'is_correction': true. If the user merely provides conflicting statements without corrective language, set 'is_correction': false.
 
 3. CONTEXTUAL YES / NO / AFFIRMATIVE / NEGATIVE ANSWERS:
    - If the last assistant question asked about worldwide assets / assets outside the home country:
@@ -140,6 +141,7 @@ RECENT CONVERSATION HISTORY:
 RULES:
 - Be polite, concise, and clear.
 - Acknowledge any information the user just provided naturally.
+- Do NOT autocorrect, alter, or modify the user's input (names, addresses, items, or wishes); reflect and reference the user's exact words without changes.
 - Clearly present the specific question or clarification required by the action.
 - WHEN ACTION IS 'COMPLETE':
   * If the user is asking for a summary (or said "yes", "summary", "give me summary"), provide a structured bulleted summary of all recorded wishes (Full Name, Address, Assets Coverage, Children, Executor, Gifts, Wishes) and state that the document is complete and ready in the Document Preview panel.
